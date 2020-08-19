@@ -325,6 +325,6 @@ void USB_DEVICE::read_BULK_FIFO(uint8_t size)
 	for(uint8_t j=0;j<size;j++)
 	{
 		BULK_OUT_buf[j]=*((uint8_t*)(buf)+j); //записываем в буфер
-		qBulk_OUT.push(BULK_OUT_buf[j]);
+		//qBulk_OUT.push(BULK_OUT_buf[j]);
 	}
 }

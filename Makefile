@@ -36,7 +36,7 @@ main.bin: main.elf
 	$(OBJC) main.elf main.bin -O binary
 main.lst: main.elf
 	$(OBJD) -D main.elf > main.lst
-main.elf: startup.o usb_device.o main.o # malloc.o tasks.o port.o queue.o list.o timers.o heap_2.o main.o
+main.elf: startup.o usb_device.o main.o  # malloc.o tasks.o port.o queue.o list.o timers.o heap_2.o main.o
 	$(CC) -o main.elf -T$(LIB)stm32f107.ld startup.o usb_device.o main.o \
 	-I$(LIB) -I$(FRH) $(LCPPFLAGS)
 	arm-none-eabi-size main.elf
@@ -58,6 +58,7 @@ usb_device.o: src/usb_device.cpp
 #	$(CC) freeRTOS/src/timers.c -o timers.o -I$(FRH) -I$(INC) $(CFLAGS)	
 #heap_2.o: freeRTOS/src/heap_2.c $(INC)
 #	$(CC) freeRTOS/src/heap_2.c -o heap_2.o -I$(FRH) -I$(INC) $(CFLAGS)		
+
 main.o: $(TARGET) #$(INC) $(FRH)
 	$(CC) $(TARGET) -o main.o -I$(INC) -I$(LIB) -I$(FRH) $(CPPFLAGS)
 	

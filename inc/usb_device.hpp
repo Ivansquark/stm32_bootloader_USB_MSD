@@ -16,7 +16,7 @@ class USB_DEVICE
 public: 
     USB_DEVICE();    
     static USB_DEVICE* pThis;
-	QueByte qBulk_OUT;
+	//QueByte qBulk_OUT;
 	uint8_t BULK_OUT_buf[64]{0};
 
 	void ReadSetupFIFO(void);

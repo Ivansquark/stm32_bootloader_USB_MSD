@@ -9,7 +9,12 @@
 #define FLASH_PAGE_SIZE 0x800 /*2K*/
 #define FLASH_PROGRAMM_ADDRESS 0x08005000 /*bootloader 20K=20480 = 0x5000*/
 
-
+void __set_MSP(uint32_t topOfMainStack) __attribute__( ( naked ) );
+void __set_MSP(uint32_t topOfMainStack)
+{
+  __ASM volatile ("MSR msp, %0\n\t"
+                  "BX  lr     \n\t" : : "r" (topOfMainStack) );
+}
 
 /*!< connectivity line with 127 2kB flash pages>*/
 
@@ -20,7 +25,7 @@ void flash_erase(uint32_t pageAddr)
 	{
 		FLASH->SR = FLASH_SR_EOP; //END of operation Set by hardware when a Flash operation (programming / erase) is completed  Reset by writing a 1
 	}
-	FLASH->CR |= FLASH_CR_PER //page erase chosen
+	FLASH->CR |= FLASH_CR_PER;//page erase chosen
 	
 	FLASH->AR = pageAddr;  // sets page address
 	FLASH->CR |= FLASH_CR_STRT; // This bit triggers an ERASE operation when set.
@@ -66,13 +71,13 @@ void flash_write(uint32_t addr, uint8_t* data, uint16_t len)
 
 void goToUserApp(void)
 {
-	uint32_t appJumpToAddress;
-	appJumpToAddress = (volatile uint32_t*)(FLASH_PROGRAMM_ADDRESS+4); //next word address
+	volatile uint32_t appJumpToAddress;
+	appJumpToAddress = *(volatile uint32_t*)(FLASH_PROGRAMM_ADDRESS+4); //next word address
 	void (*goToApp)(void); //function pointer
 	goToApp = (void (*)(void))appJumpToAddress; // cast address to function pointer
 	/*!<before sets new vectors table address need to tell linker new main programm address>*/
 	SCB->VTOR = FLASH_PROGRAMM_ADDRESS; //sets vectors table to new address
-	__set_MSP(*((volatile u32*) FLASH_PROGRAMM_ADDRESS)); //stack pointer (to RAM) for USER app in this address	
+	__set_MSP(*((volatile uint32_t*) FLASH_PROGRAMM_ADDRESS)); //stack pointer (to RAM) for USER app in this address	
 	goToApp(); //go to start main programm	
 }
 

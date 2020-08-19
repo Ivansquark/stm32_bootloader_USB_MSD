@@ -6,7 +6,7 @@
 
 void *__dso_handle = nullptr; // dummy "guard" that is used to identify dynamic shared objects during global destruction. (in fini in startup.cpp)
 
-static constexpr uin32_t last_page= 0x0803F800 // - address of last flash 2k page (2k=0x800, 1k=0x400)
+static constexpr uint32_t last_page= 0x0803F800; // - address of last flash 2k page (2k=0x800, 1k=0x400)
 
 int main()
 {		
@@ -20,8 +20,8 @@ int main()
 	//__enable_irq();
 	USART_debug usart2(2);
 	uint32_t  count=0;
-	uint32_t arr[1]={0x000000ff};
-	flash_write(last_page,arr,1);
+	uint8_t arr[4]={0x01,0x00,0x00,0x00};
+	flash_write(last_page,arr,4);
 	while(1)
 	{
 		count = flash_read(last_page);
