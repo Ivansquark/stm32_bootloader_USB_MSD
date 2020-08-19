@@ -10,7 +10,12 @@ _Min_Stack_Size = 0x800; /* required amount of stack */
 MEMORY
 {
   RAM (xrw)     : ORIGIN = 0x20000000, LENGTH = 64K
-  ROM (rx)      : ORIGIN = 0x8000000, LENGTH = 256K
+  ROM (rx)      : ORIGIN = 0x08000000, LENGTH = 256K
+  /*BOOT (rx)     : ORIGIN = 0x08000000, LENGTH = 20K*/
+  /*ROM (rx)      : ORIGIN = 0x08005000, LENGTH = 236K  // new program start address*/	
+  /*0x08040000 - end of FLASH*/
+  /*0x0803F800 - address of last flash 2k page (2k=0x800, 1k=0x400)*/
+  /*FLASH (rx)      : ORIGIN = 0x08027000, LENGTH = 100K  // for flash drive*/
 }
 
 /* Sections */

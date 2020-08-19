@@ -3,20 +3,21 @@
 
 //#include "stm32f10x.h"
 #include "stm32f107xc.h"
-#include "queues.hpp"
+//#include "queues.hpp"
 //#include "led.h"
 #include "usart1.h"
 #include "rcc.h"
 #include "core_cm3.h"
 //#include "modbus.h"
-#include "timer3.h"
+//#include "timer3.h"
 #include "spilcd.h"
-#include "usb_device.hpp"
+//#include "usb_device.hpp"
 //#include "irq.h"
 //#include "frwrapper.h"
 //#include "frclasses.h"
 //#include "adc.h"
-#include "button.h"
+//#include "button.h"
+#include "flash.h"
 
 //***************************************************
 
