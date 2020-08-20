@@ -34,6 +34,40 @@ void flash_erase(uint32_t pageAddr)
 	FLASH->CR &= ~FLASH_CR_PER; //unchose page erase
 }
 
+void flash_read_buf(uint32_t addr, void* buf, uint16_t len)
+{
+	for (uint32_t i=0;i<len;i+=2)
+	{
+		*(uint8_t*)(buf+i) =  *(uint8_t*)(addr + i);
+		*(uint8_t*)(buf+i+1) =  *(uint8_t*)(addr + i + 1);
+	}
+}
+
+void flash_write_any_buf(uint32_t addr, void* buf, uint16_t len)
+{
+	/*!<Flash unlock>*/
+	FLASH->KEYR = 0x45670123;
+	FLASH->KEYR = 0xCDEF89AB;
+
+	for(uint32_t i=0; i<len ; i+=FLASH_PAGE_SIZE)
+	{flash_erase(addr);} //erasing flash pages
+		
+	while (FLASH->SR & FLASH_SR_BSY); // no flash memory operation is ongoing
+	if (FLASH->SR & FLASH_SR_EOP) 
+	{		FLASH->SR = FLASH_SR_EOP;	} //reset bit
+
+	FLASH->CR |= FLASH_CR_PG; //Flash programming chosen
+
+	for(uint32_t i=0; i<len; i+=2)
+	{
+		if(i+1 != len)
+		{
+			*(volatile uint16_t*)(addr+i) = (*(uint16_t*)(buf+i+1)<<8) + *(uint8_t*)(buf+i);
+		}
+		else {*(volatile uint16_t*)(addr+i) = 0x0000 + *(uint8_t*)(buf+i);}
+	}
+}
+
 uint32_t flash_read(uint32_t addr)
 {
 	/*!<Flash unlock>*/
@@ -51,17 +85,20 @@ void flash_write(uint32_t addr, uint8_t* data, uint16_t len)
 	
 	for(uint32_t i=0; i<len ; i+=FLASH_PAGE_SIZE)
 	{flash_erase(addr);} //erasing flash pages
-	
-	uint32_t i;
+		
 	while (FLASH->SR & FLASH_SR_BSY); // no flash memory operation is ongoing
 	if (FLASH->SR & FLASH_SR_EOP) 
 	{		FLASH->SR = FLASH_SR_EOP;	} //reset bit
 
 	FLASH->CR |= FLASH_CR_PG; //Flash programming chosen
 	/*!< half word writing>*/
-	for (i = 0; i < len; i += 2) 
+	for (uint32_t i = 0; i < len; i += 2) 
 	{
-		*(volatile uint16_t*)(addr + i) = (((uint16_t)data[i + 1]) << 8) + data[i]; //write half word // first writing low byte then high byte
+		if((i+1) != len)
+		{
+			*(volatile uint16_t*)(addr + i) = (((uint16_t)data[i + 1]) << 8) + data[i]; //write half word // first writing low byte then high byte
+		}
+		else {*(volatile uint16_t*)(addr + i) = 0x0000  + data[i];}		
 		while (!(FLASH->SR & FLASH_SR_EOP)); //while writing page
 		FLASH->SR = FLASH_SR_EOP; 
 	}
