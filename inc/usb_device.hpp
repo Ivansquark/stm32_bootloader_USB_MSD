@@ -334,12 +334,11 @@ extern "C" void OTG_FS_IRQHandler(void)
 				/*<После того, как эта запись была извлечена из RxFIFO, ядро выставляет прерывание XFRC на указанной конечной точке OUT>*/
 						//USB_OTG_FS-> GINTMSK |= USB_OTG_GINTMSK_OEPINT;
 						if(epNum==3)
-						{
-							
+						{							
 							//USART_debug::usart2_sendSTR("BULK_OUT_COMPL \n");
-							USB_OTG_OUT(3)->DOEPTSIZ = 0;
-							USB_OTG_OUT(3)->DOEPTSIZ |= (1<<19)|(64<<0) ; //PKNT = 1 (DATA), макс размер пакета 64 байта
-							USB_OTG_OUT(3)->DOEPCTL |= (USB_OTG_DOEPCTL_CNAK | USB_OTG_DOEPCTL_EPENA);
+							USB_OTG_OUT(1)->DOEPTSIZ = 0;
+							USB_OTG_OUT(1)->DOEPTSIZ |= (1<<19)|(64<<0) ; //PKNT = 1 (DATA), макс размер пакета 64 байта
+							USB_OTG_OUT(1)->DOEPCTL |= (USB_OTG_DOEPCTL_CNAK | USB_OTG_DOEPCTL_EPENA);
 						}						
 				break;
 				case 0x04:  /* SETUP completed завершена транзакция SETUP (срабатывает прерывание). выставляется ACK*/

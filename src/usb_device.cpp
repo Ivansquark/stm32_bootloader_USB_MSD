@@ -291,6 +291,27 @@ void USB_DEVICE::cdc_send_encapsulated_command()
 void USB_DEVICE::cdc_get_encapsulated_command()
 {}
 
+void USB_DEVICE::scsi_inquiry(void)
+{}
+void USB_DEVICE::scsi_read_format_capacities(void)
+{}
+void USB_DEVICE::scsi_request_sence(void)
+{}
+void USB_DEVICE::scsi_read_capacity_10(void)
+{}
+void USB_DEVICE::scsi_mode_sense_6(void)
+{}
+void USB_DEVICE::scsi_test_unit_ready(void)
+{}
+void USB_DEVICE::scsi_prevent_allow_medium_removal(void)
+{}
+void USB_DEVICE::scsi_read_10(void)
+{}
+void USB_DEVICE::scsi_write_10(void)
+{}
+void USB_DEVICE::scsi_error(void)
+{}
+
 void USB_DEVICE::read_BULK_FIFO(uint8_t size)
 {
 	uint8_t size_on_for = (size+3)>>2;//делим на 4
@@ -299,23 +320,7 @@ void USB_DEVICE::read_BULK_FIFO(uint8_t size)
 /*!<Засовываем в очередь>*/		
 	for (uint8_t i=0;i<size_on_for;i++)
 	{
-		buf[i]=USB_OTG_DFIFO(0); //вычитываем из Rx_FIFO
-		//counter=buf[0];
-		
-		//if(i != size_on_for - 1) //запихиваем по 4 байта
-		//{
-    //  for(uint8_t j=0;j<4;j++){BULK_OUT_buf[4*i+j] = *((uint8_t*)(buf+i)+j);}
-		//	//for(uint8_t j=0;j<4;j++){qBulk_OUT.push(*((uint8_t*)(buf+i)+j));}
-		//}
-		///*запихиваем оставшуюся часть*/
-		//else
-		//{
-		//	for(uint8_t j=0;j<ostatok;j++)
-		//	{
-    //    {BULK_OUT_buf[4*i+j] = *((uint8_t*)(buf+i)+j);}
-		//		//qBulk_OUT.push(*((uint8_t*)(buf+i)+j));
-		//	}
-		//}		
+		buf[i]=USB_OTG_DFIFO(0); //вычитываем из Rx_FIFO				
 	}	
 	for(uint8_t j=0;j<size;j++)
 	{
