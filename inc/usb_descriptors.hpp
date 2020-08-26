@@ -4,33 +4,27 @@
 constexpr uint8_t Device_Descriptor[18] =
     {
         /* Standard USB device descriptor for the CDC serial driver */
-        18, // size
-        1, // USBGenericDescriptor_DEVICE
-        0x00,0x02, // USBDeviceDescriptor_USB2_00
-        2, // CDCDeviceDescriptor_CLASS
-        0, // CDCDeviceDescriptor_SUBCLASS
-        0, // CDCDeviceDescriptor_PROTOCOL
-        64, // BOARD_USB_ENDPOINTS_MAXPACKETSIZE
-        0xEB,0x03, // CDCDSerialDriverDescriptors_VENDORID
-        0x24,0x61, // CDCDSerialDriverDescriptors_PRODUCTID
-        0x10,0x01, // CDCDSerialDriverDescriptors_RELEASE  bcdDevice (00 01)
+        0x12, // size
+        0x01, // USBGenericDescriptor_DEVICE
+        0x00,0x02, // USBDeviceDescriptor_USB 2_00
+        0x00, // CDCDeviceDescriptor_CLASS  class defined at INTERFACE level
+        0x00, // CDCDeviceDescriptor_SUBCLASS SubClass defined at INTERFACE level
+        0x00, // CDCDeviceDescriptor_PROTOCOL - none
+        0x40, // BOARD_USB_ENDPOINTS_MAXPACKETSIZE
+        0x81,0x07, // CDCDSerialDriverDescriptors_VENDORID  Scandisk
+        0x50,0x51, // CDCDSerialDriverDescriptors_PRODUCTID
+        0x10,0x00, // CDCDSerialDriverDescriptors_RELEASE  bcdDevice (0010) 0.1
         1, // Index of manufacturer description //0
         2, // Index of product description //0
         3, // Index of serial number description //0
         1 // One possible configuration
     };
-
+	/* configuration descriptor - 32 bytes*/
     constexpr struct
     {
         const uint8_t Config_Descriptor[9];
         const uint8_t Interface_Descriptor1[9];
-        const uint8_t Header_Functional_Descriotor[5];
-        const uint8_t Call_Management_Functional_Descriptor[5];
-        const uint8_t ACM_Functional_Descriptor[4];
-        const uint8_t Union_Functional_Descriptor[5];
-        const uint8_t Ep2_Descriptor[7];
-        const uint8_t Interface_Descriptor2[9];
-        const uint8_t EP1_In_Descriptor[7];
+        const uint8_t EP1_IN_Descriptor[7];
         const uint8_t EP1_OUT_Descriptor[7];
     }  confDescr =    
     {
@@ -38,107 +32,46 @@ constexpr uint8_t Device_Descriptor[18] =
         {
             0x09, /* bLength: Configuration Descriptor size */
             0x02, /* bDescriptorType: Configuration */
-            67,   /* wTotalLength:no of retuinturned bytes */
+            0x20,   /* wTotalLength:no of retuinturned bytes */ //32 байта
             0x00,
-            0x02, /* bNumInterfaces: 2 interface */
+            0x01, /* bNumInterfaces: 2 interface */
             0x01, /* bConfigurationValue: Configuration value */
             0x00, /* iConfiguration: Index of string descriptor describing the configuration */
             0x80, /* bmAttributes - Bus powered 00 [6] 0-bus powered 1-no bus power [5] 0-no wakeup 1- wakeup */
-            0x32 /* MaxPower 100 mA */
-        },
-	/*!<Communication interface>*/    
-        /*Interface Descriptor master*/
+            0x64 /* MaxPower 200 mA */
+        },	
+        /*Interface Descriptor MSC*/
         {
             0x09, /* bLength: Interface Descriptor size */
             0x04, /* bDescriptorType: Interface */
             0x00, /* bInterfaceNumber: Number of Interface */
             0x00, /* bAlternateSetting: Alternate setting */
-            0x01, /* bNumEndpoints: One endpoints used */
-            0x02, /* bInterfaceClass: Communication Interface Class */
-            0x02, /* bInterfaceSubClass: Abstract Control Model */
-            0x01, /* bInterfaceProtocol: Common AT commands */
+            0x02, /* bNumEndpoints: TWO endpoints used */
+            0x08, /* bInterfaceClass: Mass Storag Device Class */
+            0x06, /* bInterfaceSubClass: SCSI transparent command set */
+            0x50, /* bInterfaceProtocol: Bulk only transport */
             0x00 /* iInterface: */
         },
-			/*!<header descriptor>*/
-			{
-				0x05, /* bLength: Endpoint Descriptor size */
-				0x24, /* bDescriptorType: CS_INTERFACE */
-				0x00, /* bDescriptorSubtype: Header Func Desc */
-				0x10, /* bcdCDC: spec release number */
-				0x01	
-			},
-			/*Call Management Functional Descriptor*/
-			{		    
-				/*!<Дескриптор режима команд, описывает процесс вызовов коммуникационного интерфейса.>*/
-				0x05, /* bFunctionLength */
-				0x24, /* bDescriptorType: CS_INTERFACE */
-				0x01, /* bDescriptorSubtype: Call Management Func Desc */
-				0x00, /* bmCapabilities: D0+D1 устройство принимает и передает команды только через коммуникационный интерфейс*/
-				0x01 /* bDataInterface: 1  number of interfaces (two interfaces)*/
-			},
-			/*ACM Functional Descriptor*/
-			{		
-				0x04, /* bFunctionLength */
-				0x24, /* bDescriptorType: CS_INTERFACE */
-				0x02, /* bDescriptorSubtype: Abstract Control Management desc */
-				0x02 /* bmCapabilities , битовая маска поддерживаемых команд*/
-				/*! x:x:x [2]-SendBreak [1]-Set_Line_Coding, Set_Control_Line_State, Get_Line_Coding,
-				Serial_State [0] - Set_Comm_Feature, Clear_Com_Feature, Get_Comm_Feature*/
-			},
-			/*Union Functional Descriptor*/
-			{
-				/*! Описывается отношение интерфейсов в группе. Один интерфейс Master, остальные Slave,
-				Запросы и нотификации проходящие через главный интерфейс, применяются ко всей
-				группе интерфейсов */		
-				0x05, /* bFunctionLength */
-				0x24, /* bDescriptorType: CS_INTERFACE */
-				0x06, /* bDescriptorSubtype: Union func desc */
-				0x00, /* bMasterInterface: Communication class interface - master*/
-				0x01 /* bSlaveInterface0: Data Class Interface  - slave*/
-			},
-			{
-				/*Endpoint 2 IN Descriptor*/
-				0x07, /* bLength: Endpoint Descriptor size */
-				0x05, /* bDescriptorType: Endpoint */
-				0x82, /* bEndpointAddress IN2  8-IN 2-endpoint2*/
-				0x03, /* bmAttributes: Interrupt */
-				64, /* wMaxPacketSize LO: */
-				0x00, /* wMaxPacketSize HI: */
-				0x10, /* bInterval: */
-			},
-        /*!<Data interface>*/
-        {
-            /*Interface Descriptor slave interface*/
-            0x09, /* bLength: Interface Descriptor size */
-            0x04, /* bDescriptorType: Interface */
-            0x01, /* bInterfaceNumber: Number of Interface */
-            0x00, /* bAlternateSetting: Alternate setting */
-            0x02, /* bNumEndpoints: Two endpoints used */
-            0x0A, /* bInterfaceClass: DATA Interface Class */
-            0x02, /* bInterfaceSubClass: No class */
-            0x00, /* bInterfaceProtocol: No special */
-            0x00 /* iInterface: */
-        },
-			{
-				/*Endpoint 1 Descriptor*/
-				0x07, /* bLength: Endpoint Descriptor size */
-				0x05, /* bDescriptorType: Endpoint */
-				0x81, /* bEndpointAddress IN1  8-IN 1-endpoint1*/
-				0x02, /* bmAttributes: BULK */
-				64, /* wMaxPacketSize LO: */
-				0x00, /* wMaxPacketSize HI: */
-				0x01 /* bInterval: */
-			},
-			/*EP1_OUT_Descriptor[7]*/
-			{
-				0x07,   /*Endpoint descriptor length = 7 */
-				0x05,   /*Endpoint descriptor type */
-				0x03,   /*Endpoint address (0-OUT 3-endpoint3) */
-				0x02,   /*Interrupt endpoint type Interrupt 0x02 -BULK*/
-				64,
-				0x00,
-				0x01     /*Polling interval in milliseconds*/
-			}
+		{
+			/*Endpoint 1 IN Descriptor*/
+			0x07, /* bLength: Endpoint Descriptor size */
+			0x05, /* bDescriptorType: Endpoint */
+			0x81, /* bEndpointAddress IN2  8-IN 1-endpoint1*/
+			0x02, /* bmAttributes: Data endpoint (D5-D4), No synchronization (D3-D2), Bulk transfer type (D1-D0) */
+			64, /* wMaxPacketSize LO: */
+			0x00, /* wMaxPacketSize HI: */
+			0x00, /* bInterval: */
+		},
+		{
+			/*Endpoint 1 OUT Descriptor*/
+			0x07, /* bLength: Endpoint Descriptor size */
+			0x05, /* bDescriptorType: Endpoint */
+			0x01, /* bEndpointAddress OUT1  0-OUT 1-endpoint1*/
+			0x02, /* bmAttributes: Data endpoint (D5-D4), No synchronization (D3-D2), Bulk transfer type (D1-D0) */
+			64, /* wMaxPacketSize LO: */
+			0x00, /* wMaxPacketSize HI: */
+			0x01, /* bInterval: */
+		}        
     };		
 //---------------------------------------------------------------------------------------------------	
 	/*! <Всего 67 байт>*/
@@ -200,6 +133,7 @@ constexpr uint8_t Device_Descriptor[18] =
     static constexpr uint16_t SET_INTERFACE = 0x010B;
     static constexpr uint16_t SYNCH_FRAME = 0x820C;
 	static constexpr uint16_t GET_REPORT = 0xA101;
+	static constexpr uint16_t QUALIFIER = 0x0600;
 	/*! <bmRequestType> */    
     static constexpr uint8_t STD_GET_STATUS = 0x00;
     static constexpr uint8_t STD_CLEAR_FEATURE = 0x01;
@@ -217,6 +151,7 @@ constexpr uint8_t Device_Descriptor[18] =
     static constexpr uint16_t USB_DESC_TYPE_DEVICE = 0x0100;
     static constexpr uint16_t USB_DESC_TYPE_CONFIGURATION = 0x0200;
     //static constexpr uint16_t USB_DESC_TYPE_DEVICE_QUALIFIER = 0x0600;
+	
 	/*<В запросах на передачу дескриптора Value содержит в старшем байте тип дескриптора, а в младшем индекс>*/
     static constexpr uint16_t USBD_IDX_LANGID_STR = 0x0300;
     static constexpr uint16_t USBD_strManufacturer = 0x0301;
@@ -225,6 +160,37 @@ constexpr uint8_t Device_Descriptor[18] =
     //static constexpr uint16_t USBD_IDX_CONFIG_STR = 0x0304;
 	
 	//<(bRequest<<8)|(bmRequestType)>
+	
+	/*!A DATA1 packet for GetMaxLun returns the number of LUNs (Logical Unit Numbers) supported by the device.
+	If the device has 0 to 3 LUNs,it returns 3. If there is no LUN associated with,
+	as in our case, it simply returns zero:*/
+	static constexpr uint16_t GetMaxLun = 0xA1FE;  //FE   
+	static constexpr uint16_t BULK_ONLY_MSD_RESET = 0xA1FF;
+	
+	/*!INQUIRY A DATA0 packet for Command Transport consists of 31 bytes of Command Block Wrapper data.*/
+	/*! 3-0 	dCBWSignature (0x43425355) 
+		7-4 	0x00000001
+		11-8 	dCBWDataTransferLength 36 bytes, (0x00000024)
+		12 		Device to host (0x80)
+		13 		Reserved (0x0) bCBWLUN (0x0)
+		14		Reserved (0x0) bCBWBLength 6 bytes (0x6)
+		30-15	CBWCB The command block CBWCB has the INQUIRY command details.*/
+		
+	/*! 0 OPERATION CODE (0x12)
+		1 Reserved (0x0) 0 0
+		2 0x0
+		3 Reserved (0x0)
+		4 ALLOCATION LENGTH (0x24)
+		5 CONTROL (0x00)*/		
+	/* OUT-32 bytes (command transport) then IN 36-bytes (Data transport) then IN 13-bytes (Status)*/	
+	//static constexpr uint16_t INQUIRY;
+	//static constexpr uint16_t TEST_UNIT_READY = 
+	//static constexpr uint16_t READ_CAPACITY =
+	//static constexpr uint16_t MODE_SENSE =
+	//static constexpr uint16_t REQUEST SENSE =
+	//static constexpr uint16_t READ = 
+	//static constexpr uint16_t WRITE = 
+	
 	static constexpr uint16_t SEND_ENCAPSULATED_COMMAND = 0x2100; //посылка команды
 	static constexpr uint16_t GET_ENCAPSULATED_RESPONSE = 0xA101; // прием команды
 	static constexpr uint16_t SET_LINE_CODING = 0x2120; //хост устанавливает параметры передачи данных

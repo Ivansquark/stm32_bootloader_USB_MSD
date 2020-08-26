@@ -155,6 +155,9 @@ void USB_DEVICE::Enumerate_Setup(void)
     USART_debug::usart2_sendSTR("GET_ENCAPSULATED_RESPONSE\n");
       cdc_get_encapsulated_command();  
       break;
+    case GetMaxLun:
+    USART_debug::usart2_sendSTR("GetMaxLun\n");
+    break; 
 	case CLEAR_FEATURE_ENDP:
 			USART_debug::usart2_sendSTR(" CLEAR_FEATURE_ENDP \n");
 			USART_debug::usart2_send(setupPack.b[2]);
@@ -221,7 +224,7 @@ void USB_DEVICE::ReadSetupFIFO(void)
 }
 void USB_DEVICE::ep_1_2_init()
 {  
-  /*!<EP1_IN, EP3_OUT - BULK, EP2_IN - INTERRUPT>*/
+  /*!<EP1_IN, EP2_OUT - BULK>*/
   USB_OTG_IN(1)->DIEPCTL|=64;// 64 байта в пакете
   USB_OTG_IN(1)->DIEPCTL|=USB_OTG_DIEPCTL_EPTYP_1;
   USB_OTG_IN(1)->DIEPCTL&=~USB_OTG_DIEPCTL_EPTYP_0; //1:0 - BULK
@@ -229,35 +232,27 @@ void USB_DEVICE::ep_1_2_init()
   USB_OTG_IN(1)->DIEPCTL|=USB_OTG_DIEPCTL_SD0PID_SEVNFRM; //data0
   USB_OTG_IN(1)->DIEPCTL|=USB_OTG_DIEPCTL_USBAEP; //включаем конечную точку (выключается по ресету) 
   
-  USB_OTG_OUT(3)->DOEPCTL|=64;// 64 байта в пакете
-  USB_OTG_OUT(3)->DOEPCTL|=USB_OTG_DOEPCTL_EPTYP_1;
-  USB_OTG_OUT(3)->DOEPCTL&=~USB_OTG_DOEPCTL_EPTYP_0; //1:0 - BULK 
-  USB_OTG_OUT(3)->DOEPCTL|=USB_OTG_DIEPCTL_SD0PID_SEVNFRM; //data0
-  USB_OTG_OUT(3)->DOEPCTL|=USB_OTG_DOEPCTL_USBAEP; //включаем конечную точку (выключается по ресету) 
-  //------------------------------------------------------------------
-  USB_OTG_IN(2)->DIEPCTL|=64;// 64 байта в пакете
-  USB_OTG_IN(2)->DIEPCTL|=USB_OTG_DIEPCTL_EPTYP_1;
-  USB_OTG_IN(2)->DIEPCTL|=USB_OTG_DIEPCTL_EPTYP_0; //1:1 - INTERRUPT
-  USB_OTG_IN(2)->DIEPCTL|=USB_OTG_DIEPCTL_TXFNUM_1;
-  USB_OTG_IN(2)->DIEPCTL&=~USB_OTG_DIEPCTL_TXFNUM_0;//Tx_FIFO_2 0:0:1:0
-  USB_OTG_IN(2)->DIEPCTL|=USB_OTG_DIEPCTL_SD0PID_SEVNFRM; //data0
-  USB_OTG_IN(2)->DIEPCTL|=USB_OTG_DIEPCTL_USBAEP; //включаем конечную точку (выключается по ресету) 
-	  
+  USB_OTG_OUT(1)->DOEPCTL|=64;// 64 байта в пакете
+  USB_OTG_OUT(1)->DOEPCTL|=USB_OTG_DOEPCTL_EPTYP_1;
+  USB_OTG_OUT(1)->DOEPCTL&=~USB_OTG_DOEPCTL_EPTYP_0; //1:0 - BULK 
+  USB_OTG_OUT(1)->DOEPCTL|=USB_OTG_DIEPCTL_SD0PID_SEVNFRM; //data0
+  USB_OTG_OUT(1)->DOEPCTL|=USB_OTG_DOEPCTL_USBAEP; //включаем конечную точку (выключается по ресету) 
+    
   //!Демаскировать прерывание для каждой активной конечной точки, и замаскировать прерывания для всех не активных конечных точек в регистре OTG_FS_DAINTMSK.
-  USB_OTG_DEVICE->DAINTMSK|=(1<<19)|(3<<1);//включаем прерывания на конечных точках 1-IN 2-IN 3-OUT 
+  USB_OTG_DEVICE->DAINTMSK|=(1<<17)|(1<<1);//включаем прерывания на конечных точках 1-IN 1-OUT 
   
   /*!<задаем максимальный размер пакета 
 	  и количество пакетов конечной точки BULK_OUT
 	  (непонятно как может быть больше одного пакета), 
 	  которое может принять Rx_FIFO>*/
-  USB_OTG_OUT(3)->DOEPTSIZ = 0;
-  USB_OTG_OUT(3)->DOEPTSIZ |= (1<<19)|(64<<0) ; //PKNT = 1 (DATA), макс размер пакета 64 байта	
+  USB_OTG_OUT(1)->DOEPTSIZ = 0;
+  USB_OTG_OUT(1)->DOEPTSIZ |= (1<<19)|(64<<0) ; //PKNT = 1 (DATA), макс размер пакета 64 байта	
   //USB_OTG_OUT(3)->DOEPTSIZ |= (1<<19)|(1<<0) ; //PKNT = 1 (DATA), 1 ,байт - прерывание по приему одного байта	
   // разрешаем прием пакета OUT на BULK точку 
-  USB_OTG_OUT(3)->DOEPCTL|=USB_OTG_DOEPCTL_CNAK|USB_OTG_DOEPCTL_EPENA; //разрешаем конечную точку OUT
+  USB_OTG_OUT(1)->DOEPCTL|=USB_OTG_DOEPCTL_CNAK|USB_OTG_DOEPCTL_EPENA; //разрешаем конечную точку OUT
 //-------------------------------------------------------
 /*< Заполняем массив line_code>*/	
-	for(uint8_t i=0;i<7;i++){line_code[i] = line_coding[i];}
+	//for(uint8_t i=0;i<7;i++){line_code[i] = line_coding[i];}
 }
 
 void USB_DEVICE::stall()

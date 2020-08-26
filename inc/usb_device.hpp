@@ -76,6 +76,17 @@ private:
 	void cdc_get_encapsulated_command();
 	//void getConfiguration();
     //void Set_CurrentConfiguration(uint16_t value);
+	/*!<----------SCSI HANDLER------------->!*/
+	void scsi_inquiry(void);
+	void scsi_read_format_capacities(void);
+	void scsi_request_sence(void);
+	void scsi_read_capacity_10(void);
+	void scsi_mode_sense_6(void);
+	void scsi_test_unit_ready(void);
+	void scsi_prevent_allow_medium_removal(void);
+	void scsi_read_10(void);
+	void scsi_write_10(void);
+	void scsi_error(void);
     
     uint16_t MIN(uint16_t len, uint16_t wLength);
     void WriteFIFO(uint8_t fifo_num, uint8_t *src, uint16_t len);    
@@ -197,15 +208,7 @@ extern "C" void OTG_FS_IRQHandler(void)
 			if(epint & USB_OTG_DIEPINT_TXFE) //Transmit FIFO Empty.
 			{USART_debug::usart2_sendSTR("Bulk IN USB_OTG_DIEPINT_TXFE\n");}
 			USB_OTG_IN(1)->DIEPINT = epint;//сбрасываем регистр статуса прерываний записью единицы rc_w1 (read/clear_write_1)
-		}
-		if( epnums & 0x0004) // если конечная точка 2 INTERRUPT IN
-		{ //EP2 IEPINT
-			USART_debug::usart2_sendSTR("INTERRUPT IN\n");
-			epint = USB_OTG_IN(2)->DIEPINT;  //Этот регистр показывает статус конечной точки по отношению к событиям USB и AHB.
-			epint &= USB_OTG_DEVICE->DIEPMSK;  // считываем разрешенные биты 
-			/*!<передаем запрошенные данные в INTERRUPT точку communication interface>*/
-		    USB_OTG_IN(2)->DIEPINT = epint;//сбрасываем регистр статуса прерываний записью единицы rc_w1 (read/clear_write_1)
-		}   
+		}		   
 		USB_OTG_FS-> GINTMSK |= USB_OTG_GINTMSK_IEPINT; //IN EndPoints INTerrupt mask. Разрешаем прерывание конечных точек IN				
 		return;
     }    
@@ -253,29 +256,14 @@ extern "C" void OTG_FS_IRQHandler(void)
 				/*!<разгребаем принятые данные в BULK точку>*/
 				USART_debug::usart2_sendSTR("BULK_1_OUT_XFRC \n");
 				//USB_OTG_OUT(1)->DOEPCTL|=USB_OTG_DOEPCTL_CNAK|USB_OTG_DOEPCTL_EPENA;
-			}
-						
+			}						
 			//----------------------------------------------------------------------
 		    USB_OTG_OUT(1)->DOEPINT = epint; //сбрасываем регистр статуса прерываний записью единицы rc_w1 (read/clear_write_1)
 		}
-		if( epnums & 0x00040000)		// конечная точка 2 нету
-		{ //EP2 OEPINT
-		    USB_OTG_OUT(2)->DOEPINT = epint;
-		}
-		if( epnums & 0x00080000)		// конечная точка 3 
-		{ //EP3 OEPINT
-		    epint = USB_OTG_OUT(3)->DOEPINT;  //Этот регистр показывает статус конечной точки по отношению к событиям USB и AHB.
-		    epint &= USB_OTG_DEVICE->DOEPMSK; // считываем разрешенные биты 
-			/*!<Когда приложение прочитало все данные, ядро генерирует прерывание XFRC>*/ 
-			if(epint & USB_OTG_DOEPINT_XFRC)
-			{
-				/*!<разгребаем принятые данные в BULK точку>*/
-				USART_debug::usart2_sendSTR("BULK_3_OUT_XFRC \n");
-				//USB_OTG_OUT(1)->DOEPCTL|=USB_OTG_DOEPCTL_CNAK|USB_OTG_DOEPCTL_EPENA;
-			}						
+								
 			//----------------------------------------------------------------------
-		    USB_OTG_OUT(3)->DOEPINT = epint; //сбрасываем регистр статуса прерываний записью единицы rc_w1 (read/clear_write_1)
-		}
+		USB_OTG_OUT(3)->DOEPINT = epint; //сбрасываем регистр статуса прерываний записью единицы rc_w1 (read/clear_write_1)
+		
 		USB_OTG_FS-> GINTMSK |= USB_OTG_GINTMSK_OEPINT; //IN EndPoints INTerrupt mask. Разрешаем прерывание конечных точек IN
     return;
     }
