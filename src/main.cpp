@@ -17,6 +17,8 @@ typedef struct
 }buf;
 #pragma pack(pop)
 
+SCSI scsi;
+
 int main()
 {		
     RCCini rcc;	//! 72 MHz
@@ -34,9 +36,13 @@ int main()
 
 	while(1)
 	{
-		flash_read_buf(last_page,&b,4);
-		font16.intToChar(b.z);
-		font16.print(10,10,0x00ff,font16.arr,2);		
+		//flash_read_buf(last_page,&b,4);
+		//font16.intToChar(b.z);
+		//font16.print(10,10,0x00ff,font16.arr,2);		
+		if(scsi.recieveCommandFlag)
+		{
+			scsi.SCSI_Execute(0);			
+		}		
 	}
     return 0;
 }

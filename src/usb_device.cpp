@@ -161,15 +161,14 @@ void USB_DEVICE::Enumerate_Setup(void)
 	case CLEAR_FEATURE_ENDP:
 			USART_debug::usart2_sendSTR(" CLEAR_FEATURE_ENDP \n");
 			USART_debug::usart2_send(setupPack.b[2]);
-		  USART_debug::usart2_send(setupPack.b[3]);
+			USART_debug::usart2_send(setupPack.b[3]);
 		//Сбросить все TXFIFO
 		USB_OTG_FS->GRSTCTL = USB_OTG_GRSTCTL_TXFFLSH | USB_OTG_GRSTCTL_TXFNUM;
 		while (USB_OTG_FS->GRSTCTL & USB_OTG_GRSTCTL_TXFFLSH); //очищаем Tx_FIFO, которое почему то переполняется
-		break;
-	
+		break;	
 	default: 
-  //stall();
-  USART_debug::usart2_sendSTR(" STALL \n");break;
+	//stall();
+	USART_debug::usart2_sendSTR(" STALL \n");break;
   }   
   WriteINEP(0x00,pbuf,MIN(len, setupPack.setup.wLength));   // записываем в конечную точку адрес дескриптора и его размер (а также запрошенный размер)
 }
@@ -177,25 +176,24 @@ void USB_DEVICE::Enumerate_Setup(void)
 void USB_DEVICE::SetAdr(uint16_t value)
 {  
     ADDRESS=value;
-	  addressFlag = false;	  
+	addressFlag = false;	  
     uint32_t add = value<<4;
     USB_OTG_DEVICE->DCFG |= add; //запись адреса.    
     //USB_OTG_FS-> GINTMSK |= USB_OTG_GINTMSK_IEPINT;
     USB_OTG_OUT(0)->DOEPCTL |= (USB_OTG_DOEPCTL_CNAK | USB_OTG_DOEPCTL_EPENA);    
     //USART_debug::usart2_sendSTR("ADDRESS\n");
-	  // необходимо выставить подтверждение принятия пакета выставления адреса 
-	  
+	// необходимо выставить подтверждение принятия пакета выставления адреса 	  
 }
 //-----------------------------------------------------------------------------------------
 void USB_DEVICE::WriteINEP(uint8_t EPnum,uint8_t* buf,uint16_t minLen)
 {
-  USB_OTG_IN(EPnum)->DIEPTSIZ =0;
-  /*!<записать количество пакетов и размер посылки>*/
-  uint8_t Pcnt = minLen/64 + 1;  
-  USB_OTG_IN(EPnum)->DIEPTSIZ |= (Pcnt<<19)|(minLen);
-   /*!<количество передаваемых пакетов (по прерыванию USB_OTG_DIEPINT_XFRC передается один пакет)>*/
-  USB_OTG_IN(EPnum)->DIEPCTL |= (USB_OTG_DIEPCTL_CNAK | USB_OTG_DIEPCTL_EPENA); //выставляем перед записью
-  if(minLen) WriteFIFO(EPnum, buf, minLen); //если нет байтов передаем пустой пакет    
+	USB_OTG_IN(EPnum)->DIEPTSIZ =0;
+	/*!<записать количество пакетов и размер посылки>*/
+	uint8_t Pcnt = minLen/64 + 1;  
+	USB_OTG_IN(EPnum)->DIEPTSIZ |= (Pcnt<<19)|(minLen);
+	/*!<количество передаваемых пакетов (по прерыванию USB_OTG_DIEPINT_XFRC передается один пакет)>*/
+	USB_OTG_IN(EPnum)->DIEPCTL |= (USB_OTG_DIEPCTL_CNAK | USB_OTG_DIEPCTL_EPENA); //выставляем перед записью
+	if(minLen) WriteFIFO(EPnum, buf, minLen); //если нет байтов передаем пустой пакет    
 }
 //---------------------------------------------------------------------------------------------------
 uint16_t USB_DEVICE::MIN(uint16_t len, uint16_t wLength)

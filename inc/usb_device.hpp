@@ -140,6 +140,7 @@ extern "C" void OTG_FS_IRQHandler(void)
 		USB_OTG_DEVICE->DCFG &=~ value<<4; //запись адреса 0.
 		USB_OTG_FS->GINTSTS |= USB_OTG_GINTSTS_USBRST; // сбрасываем бит		
 	}
+//-----------------------------------------------------------------------------------------------------------------------------------------	
      /*! <start of Enumeration done> */
 	if(USB_OTG_FS->GINTSTS & USB_OTG_GINTSTS_ENUMDNE)
 	{
@@ -253,9 +254,11 @@ extern "C" void OTG_FS_IRQHandler(void)
 			/*!<Когда приложение прочитало все данные, ядро генерирует прерывание XFRC>*/ 
 			if(epint & USB_OTG_DOEPINT_XFRC)
 			{
-				/*!<разгребаем принятые данные в BULK точку>*/
+				/*!<разгребаем принятые данные в буфере приема BULK точки>*/
 				USART_debug::usart2_sendSTR("BULK_1_OUT_XFRC \n");
-				//USB_OTG_OUT(1)->DOEPCTL|=USB_OTG_DOEPCTL_CNAK|USB_OTG_DOEPCTL_EPENA;
+				
+				SCSI::recieveCommandFlag=true; //обрабатываем принятый пакет c командами SCSI
+												
 			}						
 			//----------------------------------------------------------------------
 		    USB_OTG_OUT(1)->DOEPINT = epint; //сбрасываем регистр статуса прерываний записью единицы rc_w1 (read/clear_write_1)
@@ -298,7 +301,7 @@ extern "C" void OTG_FS_IRQHandler(void)
 					} //читаем пакет setLineCoding (из 8 байт)
 					else 
 					{//!другие пакеты (BULK) принимается всегда один DATA пакет после OUT пакета					  
-						if (epNum == 3)
+						if (epNum == 1)
 						{/*!< считываем Rx_FIFO в очередь>*/
 							/*!<необходимо записать принятые байты в память (в буфер очереди)>*/
 							uint8_t size = 64 - (USB_OTG_OUT(3)->DOEPTSIZ & 0xFF);
@@ -307,7 +310,7 @@ extern "C" void OTG_FS_IRQHandler(void)
 							//USB_DEVICE::pThis->resetFlag=size;
 							if(size)
 							{								
-								USB_DEVICE::pThis->read_BULK_FIFO(size); //вычитываем из FIFO количество байт size
+								USB_DEVICE::pThis->read_BULK_FIFO(size); //вычитываем из FIFO количество байт size в буффер BULK_OUT_buf
 								//USART_debug::usart2_sendSTR("read_BULK_FIFO\n");
 							}
 							//uint32_t dummy = USB_OTG_DFIFO(0);
@@ -333,7 +336,7 @@ extern "C" void OTG_FS_IRQHandler(void)
 				case 0x03: 
 				/*<После того, как эта запись была извлечена из RxFIFO, ядро выставляет прерывание XFRC на указанной конечной точке OUT>*/
 						//USB_OTG_FS-> GINTMSK |= USB_OTG_GINTMSK_OEPINT;
-						if(epNum==3)
+						if(epNum==1)
 						{							
 							//USART_debug::usart2_sendSTR("BULK_OUT_COMPL \n");
 							USB_OTG_OUT(1)->DOEPTSIZ = 0;

@@ -113,7 +113,7 @@ constexpr uint8_t Device_Descriptor[18] =
 		'3',0		
 	};
 	/*! <wRequest> */
-	static constexpr uint16_t GET_STATUS_DEVICE = 0x8000;
+	static constexpr uint16_t GET_STATUS_DEVICE = 0x8000; //вернуть два байта, во втором последние два бита [0]-sef power [1]-Remote Wakeup
 	static constexpr uint16_t GET_STATUS_INTERFACE = 0x8100;
 	static constexpr uint16_t GET_STATUS_ENDP = 0x8200;
     static constexpr uint16_t CLEAR_FEATURE_DEVICE = 0x0001;
@@ -164,8 +164,8 @@ constexpr uint8_t Device_Descriptor[18] =
 	/*!A DATA1 packet for GetMaxLun returns the number of LUNs (Logical Unit Numbers) supported by the device.
 	If the device has 0 to 3 LUNs,it returns 3. If there is no LUN associated with,
 	as in our case, it simply returns zero:*/
-	static constexpr uint16_t GetMaxLun = 0xA1FE;  //FE   
-	static constexpr uint16_t BULK_ONLY_MSD_RESET = 0xA1FF;
+	static constexpr uint16_t GetMaxLun = 0xA1FE;  //FE   (если несколько носителей необходимо ответить сколько, если одно в ответе 0)
+	static constexpr uint16_t BULK_ONLY_MSD_RESET = 0x21FF;
 	
 	/*!INQUIRY A DATA0 packet for Command Transport consists of 31 bytes of Command Block Wrapper data.*/
 	/*! 3-0 	dCBWSignature (0x43425355) 
