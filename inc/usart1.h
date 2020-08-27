@@ -80,7 +80,7 @@ private:
             case 2:
             {
                 // настраиваем пины USART 2
-                RCC->APB2ENR|=RCC_APB2ENR_IOPDEN; // тактирование на порт B
+                RCC->APB2ENR|=RCC_APB2ENR_IOPDEN; // тактирование на порт D
                 //Tx portD-5
                 GPIOD->CRL|=GPIO_CRL_MODE5; //11: Output mode, max speed 50 MHz.
                 GPIOD->CRL|=GPIO_CRL_CNF5_1;

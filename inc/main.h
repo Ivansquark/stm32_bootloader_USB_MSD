@@ -17,8 +17,9 @@
 //#include "frclasses.h"
 //#include "adc.h"
 //#include "button.h"
-#include "flash.h"
-#include "scsi_descriptor.hpp"
+#include "flash.hpp"
+#include "scsi.hpp"
+
 
 //***************************************************
 

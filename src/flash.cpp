@@ -1,9 +1,11 @@
 #include "flash.hpp"
 
-Flash::flash()
-{}
+Flash* Flash::pThis=nullptr;
 
-void Flash::flash_erase(uint32_t pageAddr)
+Flash::Flash()
+{pThis=this;}
+
+void Flash::erase(uint32_t pageAddr)
 {
 	unlock();
 	while(FLASH->SR & FLASH_SR_BSY); // no flash memory operation is ongoing (BSY -busy)
@@ -23,7 +25,7 @@ void Flash::flash_erase(uint32_t pageAddr)
 void Flash::write_any_buf(uint32_t addr, void* buf, uint16_t len)
 {	
 	for(uint32_t i=0; i<len ; i+=FLASH_PAGE_SIZE)
-	{flash_erase(addr);} //erasing flash pages
+	{erase(addr);} //erasing flash pages
 		
 	while (FLASH->SR & FLASH_SR_BSY); // no flash memory operation is ongoing
 	if (FLASH->SR & FLASH_SR_EOP) 
@@ -45,14 +47,14 @@ void Flash::write_any_buf(uint32_t addr, void* buf, uint16_t len)
 	lock();
 }
 
-uint32_t Flash::flash_read32(uint32_t addr)
+uint32_t Flash::read32(uint32_t addr)
 {
 	unlock();
 	return *((uint32_t*)addr);
 	lock();
 }
 
-void Flash::void read_buf(uint32_t addr, void* buf, uint16_t len)
+void Flash::read_buf(uint32_t addr, void* buf, uint16_t len)
 {
 	unlock();
 	for (uint32_t i=0;i<len;i+=2)

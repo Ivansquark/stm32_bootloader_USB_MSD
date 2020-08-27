@@ -23,7 +23,7 @@ LCPPFLAGS = -mcpu=cortex-m3 -mthumb -nostartfiles -lm -lc -lgcc \
 		 -specs=nano.specs -specs=nosys.specs -fno-exceptions -fno-rtti \
 		 -mfloat-abi=soft -fno-use-cxa-atexit \
 		 -L/usr/lib/arm-none-eabi/newlib/thumb/v7-m/ -L/usr/lib/arm-none-eabi/newlib/ \
-		 	-Xlinker -Map=main.map -z muldefs 
+		 	-Xlinker -Map=main.map #-z muldefs 
 LDFLAGS =  -marmelf --gc-sections -lgcc -lm -lc \
 	-L/usr/lib/gcc/arm-none-eabi/7.3.1/ -L/usr/lib/gcc/arm-none-eabi/7.3.1/thumb/v7-m/
 	
@@ -36,14 +36,18 @@ main.bin: main.elf
 	$(OBJC) main.elf main.bin -O binary
 main.lst: main.elf
 	$(OBJD) -D main.elf > main.lst
-main.elf: startup.o usb_device.o main.o  # malloc.o tasks.o port.o queue.o list.o timers.o heap_2.o main.o
-	$(CC) -o main.elf -T$(LIB)stm32f107.ld startup.o usb_device.o main.o \
+main.elf: startup.o usb_device.o scsi.o flash.o main.o  # malloc.o tasks.o port.o queue.o list.o timers.o heap_2.o main.o
+	$(CC) -o main.elf -T$(LIB)stm32f107.ld startup.o usb_device.o scsi.o flash.o main.o \
 	-I$(LIB) -I$(FRH) $(LCPPFLAGS)
 	arm-none-eabi-size main.elf
 startup.o: $(LIB)startup.cpp
 	$(CC) $(LIB)startup.cpp -o startup.o $(CPPFLAGS)
 usb_device.o: src/usb_device.cpp
 	$(CC) src/usb_device.cpp -o usb_device.o -I$(INC) -I$(LIB) $(CPPFLAGS)
+scsi.o: src/scsi.cpp
+	$(CC) src/scsi.cpp -o scsi.o -I$(INC) -I$(LIB) $(CPPFLAGS)
+flash.o: src/flash.cpp
+	$(CC) src/flash.cpp -o flash.o -I$(INC) -I$(LIB) $(CPPFLAGS)	
 #malloc.o: src/malloc.cpp
 #	$(CC) src/malloc.cpp -o malloc.o -I$(INC) -I$(FRH) $(CPPFLAGS)	
 #port.o: freeRTOS/src/port.c 
