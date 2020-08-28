@@ -1,7 +1,7 @@
 #include "scsi.hpp"
 
 bool SCSI::recieveCommandFlag=false;
-bool SCSI::recieveDataFlag=false;
+bool SCSI::transiveFifoFlag=false;
 
 SCSI::SCSI(){}
 
@@ -14,79 +14,94 @@ void SCSI::SCSI_Execute(uint8_t ep_number)
 	/* приняли данные в EP1, Натягиваем scsi_cbw_t на приемный буфер*/
     scsi_cbw_t *cbw = (scsi_cbw_t *)USB_DEVICE::pThis->BULK_OUT_buf;
 	//Если пакет успешно принят
-    if (cbw->dCBWSignature==0x43425355)
+	recieveCommandFlag=false;
+	if (cbw->dCBWSignature==0x43425355)
 	{
 	//Сразу копируем значение dCBWTag в CSW.dCSWTag
         CSW.dCSWTag = (cbw -> dCBWTag);
 	//Определяем пришедшую команду
-        switch (cbw -> CBWCB[0])
+	USB_DEVICE::pThis->counter = cbw -> CBWCB[0];
+    	switch (cbw -> CBWCB[0])
 		{
 		/*!Если INQUIRY*/
-        case INQUIRY:
-		//USART_debug::usart2_sendSTR("\n INQUIRY \n");
-		
+    	case INQUIRY:
+		//USART_debug::usart2_sendSTR("\n INQUIRY \n");		
 		//Проверка битов EVPD и CMDDT
-            if (cbw -> CBWCB[1] == 0)
+        	if (cbw -> CBWCB[1] == 0)
 			{
 				//Передаем стандартный ответ на INQUIRY				
-                USB_DEVICE::pThis->WriteINEP(ep_number, inquiry, cbw -> CBWCB[4]);				
-				USART_debug::usart2_send(cbw->CBWCB[4]); //размер
+				//USB_DEVICE::pThis->counter = USB_OTG_IN(1)->DTXFSTS; //размер оставшегося места в FIFO		
+        	    USB_DEVICE::pThis->WriteINEP(ep_number, inquiry, cbw -> CBWCB[4]);				
+				//USART_debug::usart2_send(cbw->CBWCB[4]); //размер
 				//USART_debug::usart2_sendSTR(" standINQUIRY \n");
 				//Заполняем поля CSW
-                CSW.dCSWDataResidue = (cbw -> dCBWDataTransferLength) - cbw -> CBWCB[4];
+        	    CSW.dCSWDataResidue = (cbw -> dCBWDataTransferLength) - cbw -> CBWCB[4];
 				//Команда выполнилась успешно
-                CSW.bCSWStatus = 0x00; 
+        	    CSW.bCSWStatus = 0x00; 
 				//Посылаем контейнер состояния
-                USB_DEVICE::pThis->WriteINEP(ep_number, (uint8_t *)&CSW, 13); //статус всегда ин пакет
-				USART_debug::usart2_sendSTR(" statusINQUERY \n");
+				while(transiveFifoFlag);
+        	    USB_DEVICE::pThis->WriteINEP(ep_number, (uint8_t *)&CSW, 13); //статус всегда ин пакет
+				//USB_DEVICE::pThis->counter = (CSW);        
+				USART_debug::usart2_sendSTR(" statINQ \n");				
 			} else 
 			{
 				USART_debug::usart2_sendSTR(" errorINQUIRY \n");
 				//Заполняем поля CSW
-                CSW.dCSWDataResidue = (cbw -> dCBWDataTransferLength);
+        	    CSW.dCSWDataResidue = (cbw -> dCBWDataTransferLength);
 				//Сообщаем об ошибке выполнения команды
-                CSW.bCSWStatus = 0x01;
+        	    CSW.bCSWStatus = 0x01;
 				//Посылаем контейнер состояния
-                USB_DEVICE::pThis->WriteINEP(ep_number, (uint8_t *)&CSW, 13);
+        	    USB_DEVICE::pThis->WriteINEP(ep_number, (uint8_t *)&CSW, 13);
 				//Подтверждаем
-                CSW.bCSWStatus = 0x00;
+        	    CSW.bCSWStatus = 0x00;
 				//Посылаем контейнер состояния
-                USB_DEVICE::pThis->WriteINEP(ep_number, (uint8_t *)&CSW, 13);
-            }
-        break;
+        	    USB_DEVICE::pThis->WriteINEP(ep_number, (uint8_t *)&CSW, 13);
+        	}
+    	break;
 		/*!Если REQUEST_SENSE*/
 		case REQUEST_SENSE:
 		USART_debug::usart2_sendSTR("\n REQUEST_SENSE \n");
 		//Отправляем пояснительные данные
-        USB_DEVICE::pThis->WriteINEP(ep_number, sense_data, 18);
+		while(transiveFifoFlag);
+    	USB_DEVICE::pThis->WriteINEP(ep_number, sense_data, 18);
 		//Заполняем поля CSW
-        CSW.dCSWDataResidue = (cbw -> dCBWDataTransferLength) - cbw -> CBWCB[4];
+    	CSW.dCSWDataResidue = (cbw -> dCBWDataTransferLength) - cbw -> CBWCB[4];
 		//Команда выполнилась успешно
-        CSW.bCSWStatus = 0x00;
+    	CSW.bCSWStatus = 0x00;
 		//Посылаем контейнер состояния
-        USB_DEVICE::pThis->WriteINEP(ep_number, (uint8_t *)&CSW, 13);
-        break;
+		while(transiveFifoFlag);
+    	USB_DEVICE::pThis->WriteINEP(ep_number, (uint8_t *)&CSW, 13);
+    	break;
+//---------------------------------------------------------------------------------		
 		/*! Если READ_CAPACITY_10*/
-		case READ_CAPACITY_10:		
+		case READ_CAPACITY_10:	
+		//Сбросить все TXFIFO
+		//USB_OTG_FS->GRSTCTL = USB_OTG_GRSTCTL_TXFFLSH | USB_OTG_GRSTCTL_TXFNUM;
+		//while (USB_OTG_FS->GRSTCTL & USB_OTG_GRSTCTL_TXFFLSH); //очищаем Tx_FIFO, которое почему то переполняется	
 		//Передаем структуру
 		//TODO: надо узнать есть ли в передающем FIFO что то до момента отправки
-		USB_DEVICE::pThis->counter = USB_OTG_IN(1)->DIEPTSIZ & 0xFFFF;
-		//USB_DEVICE::pThis->counter = USB_OTG_IN(1)->DTXFSTS; //размер оставшегося места в FIFO
-        USB_DEVICE::pThis->WriteINEP(ep_number, capacity, 8);
+		//USB_DEVICE::pThis->counter = USB_OTG_IN(1)->DIEPTSIZ & 0xFFFF;
+		while(transiveFifoFlag);
+		USB_DEVICE::pThis->WriteINEP(ep_number, capacity, 8);
 		//Заполняем и передаем CSW
-        CSW.dCSWDataResidue = (cbw -> dCBWDataTransferLength) - cbw -> CBWCB[4];
-        CSW.bCSWStatus = 0x00;
-        USB_DEVICE::pThis->WriteINEP(ep_number, (uint8_t *)&CSW, 13);
+    	CSW.dCSWDataResidue = (cbw -> dCBWDataTransferLength) - cbw -> CBWCB[4];
+    	CSW.bCSWStatus = 0x00;
+		while(transiveFifoFlag);
+    	USB_DEVICE::pThis->WriteINEP(ep_number, (uint8_t *)&CSW, 13);
 		USART_debug::usart2_sendSTR("\n READ_CAPACITY_10 \n");
-        break;
+    	break;
+//--------------------------------------------------------------
 		/*!--MODE_SENSE_6--*/
 		case MODE_SENSE_6:
 		USART_debug::usart2_sendSTR("\n MODE_SENSE_6 \n");
+		while(transiveFifoFlag);
 		USB_DEVICE::pThis->WriteINEP(ep_number, mode_sense_6, 4);
 		CSW.dCSWDataResidue = (cbw -> dCBWDataTransferLength) - cbw -> CBWCB[4];
 		CSW.bCSWStatus = 0x00;
+		while(transiveFifoFlag);
 		USB_DEVICE::pThis->WriteINEP(ep_number, (uint8_t *)&CSW, 13);
 		break;
+//-----------------------------------------------------------------------------------		
 		case READ_10:
 		USART_debug::usart2_sendSTR("\n READ_10 \n");
 		//записываем в I начальный адрес читаемого блока
@@ -102,15 +117,17 @@ void SCSI::SCSI_Execute(uint8_t ep_number)
 			for (j = 0; j < 8; j++)
 			{
 				//Передаем часть буфера
+				while(transiveFifoFlag);
 				USB_DEVICE::pThis->WriteINEP(ep_number, (uint8_t *)&buf[64*j], 64);
 			}
 		}
 		//Заполняем и посылаем CSW
 		CSW.dCSWDataResidue = (cbw -> dCBWDataTransferLength) - cbw -> CBWCB[4];
 		CSW.bCSWStatus = 0x00;
+		while(transiveFifoFlag);
 		USB_DEVICE::pThis->WriteINEP(ep_number, (uint8_t *)&CSW, 13);
 		break;
-		
+//---------------------------------------------------------------------------------		
 		case WRITE_10:
 		USART_debug::usart2_sendSTR("\n WRITE_10 \n");
 		//recieveDataFlag=true; // флаг о том что принимаем данные а не команду.
@@ -139,29 +156,44 @@ void SCSI::SCSI_Execute(uint8_t ep_number)
 		//Заполняем и посылаем CSW
 		CSW.dCSWDataResidue = (cbw -> dCBWDataTransferLength ) - cbw -> CBWCB[4];
 		CSW.bCSWStatus = 0x00;
+		while(transiveFifoFlag);
 		USB_DEVICE::pThis->WriteINEP(ep_number, (uint8_t *)&CSW, 13);
 		break;
-//-----------------------------------------------------------
+//----------------------------------------------------------
 		case TEST_UNIT_READY:
-USART_debug::usart2_sendSTR("\n TEST_UNIT_READY \n");		
+		USART_debug::usart2_sendSTR("\n TEST_UNIT_READY \n");		
 		CSW.dCSWDataResidue = (cbw -> dCBWDataTransferLength);
 		CSW.bCSWStatus = 0x00;
+		while(transiveFifoFlag);
 		USB_DEVICE::pThis->WriteINEP(ep_number, (uint8_t *)&CSW, 13);
 		break;
+//-------------------------------------------------------------		
+		case PREVENT_ALLOW_MEDIUM_REMOVAL:
+		USART_debug::usart2_sendSTR("\n PREVENT_ALLOW_MEDIUM_REMOVAL \n");		
+		CSW.dCSWDataResidue = (cbw -> dCBWDataTransferLength);
+		CSW.bCSWStatus = 0x00;
+		while(transiveFifoFlag);
+		USB_DEVICE::pThis->WriteINEP(ep_number, (uint8_t *)&CSW, 13);
+		break;
+//------------------------------------------------------------------------		
 		//Неизвестная команда  отвечаем ошибкой
-        default:
+    	default:
+		USART_debug::usart2_send(cbw -> CBWCB[0]);
+		USART_debug::usart2_sendSTR("\n SCSI_ERR \n");		
 		//Заполняем поля CSW
-            CSW.dCSWDataResidue = (cbw -> dCBWDataTransferLength);
+    	    CSW.dCSWDataResidue = (cbw -> dCBWDataTransferLength);
 		//Сообщаем об ошибке выполнения команды
-            CSW.bCSWStatus = 0x01;
+    	    CSW.bCSWStatus = 0x01;
 		//Посылаем контейнер состояния
-            USB_DEVICE::pThis->WriteINEP(ep_number, (uint8_t *)&CSW, 13);
+			while(transiveFifoFlag);
+    	    USB_DEVICE::pThis->WriteINEP(ep_number, (uint8_t *)&CSW, 13);
 		//Подтверждаем
-            CSW.bCSWStatus = 0x00;
+    	    CSW.bCSWStatus = 0x00;
 		//Посылаем контейнер состояния
-            USB_DEVICE::pThis->WriteINEP(ep_number, (uint8_t *)&CSW, 13);
-            break;
-        }   
-		recieveCommandFlag=false;
-    }
+			while(transiveFifoFlag);
+    	    USB_DEVICE::pThis->WriteINEP(ep_number, (uint8_t *)&CSW, 13);
+    	    break;
+    	}   
+	}   
+    
 }

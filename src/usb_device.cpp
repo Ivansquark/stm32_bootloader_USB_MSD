@@ -77,8 +77,7 @@ void USB_DEVICE::Enumerate_Setup(void)
       switch(setupPack.setup.wValue)
       {        
         case USB_DESC_TYPE_DEVICE:   //Запрос дескриптора устройства
-        //USART_debug::usart2_sendSTR("DEVICE DESCRIPTER\n");
-        //counter++;
+        //USART_debug::usart2_sendSTR("DEVICE DESCRIPTER\n");        
           len = sizeof(Device_Descriptor);
           pbuf = (uint8_t *)Device_Descriptor; // выставляем в буфер адрес массива с дескриптором устройства.
           break;
@@ -158,7 +157,7 @@ void USB_DEVICE::Enumerate_Setup(void)
       cdc_get_encapsulated_command();  
       break;
     case GetMaxLun:  //возвращаем 0 
-    USART_debug::usart2_sendSTR("GetMaxLun\n");
+    //USART_debug::usart2_sendSTR("GetMaxLun\n");
     break; 
 	case CLEAR_FEATURE_ENDP:
 			USART_debug::usart2_sendSTR(" CLEAR_FEATURE_ENDP \n");
@@ -197,7 +196,7 @@ uint16_t USB_DEVICE::MIN(uint16_t len, uint16_t wLength)
 //--------------------------------------------------------------------------------------------
 void USB_DEVICE::WriteINEP(uint8_t EPnum,const uint8_t* buf,uint16_t minLen)
 {
-	USB_OTG_IN(EPnum)->DIEPTSIZ =0;
+	//USB_OTG_IN(EPnum)->DIEPTSIZ =0;
 	/*!<записать количество пакетов и размер посылки>*/
 	uint8_t Pcnt = minLen/64 + 1;  
 	USB_OTG_IN(EPnum)->DIEPTSIZ |= (Pcnt<<19)|(minLen);
@@ -215,9 +214,13 @@ void USB_DEVICE::WriteFIFO(uint8_t fifo_num, const uint8_t *src, uint16_t len)
         /*!<закидываем в fifo 32-битные слова>*/
         USB_OTG_DFIFO(fifo_num) = *((__packed uint32_t *)src);                
     }
-	USART_debug::usart2_sendSTR("W1= ");
-    USART_debug::usart2_send(len);
-	USART_debug::usart2_sendSTR(" W1\n");	    
+	SCSI::transiveFifoFlag=true;
+	//if (SCSI::recieveCommandFlag)
+	//{
+	//	USART_debug::usart2_sendSTR("W1= ");
+	//	USART_debug::usart2_send(len);
+	//	USART_debug::usart2_sendSTR("= !!!\n");
+	//}	    
 }
 //---------------------------------------------------------------------------------------------
 void USB_DEVICE::ReadSetupFIFO(void)
@@ -426,7 +429,11 @@ extern "C" void OTG_FS_IRQHandler(void)
 			epint &= USB_OTG_DEVICE->DIEPMSK;  // считываем разрешенные биты 
 			/*!<передаем данные в BULK точку (если данные есть в данном FIFO то они передадутся и сработает это прерывание)>*/
 			if(epint & USB_OTG_DIEPINT_XFRC) // передача пакета окончена
-			{USART_debug::usart2_sendSTR("Bulk IN XFRC\n");}
+			{
+				SCSI::transiveFifoFlag=false;
+				//USART_debug::usart2_send(USB_OTG_IN(1)->DTXFSTS); //оставшийся размер TxFIFO
+				//USART_debug::usart2_sendSTR("B_IN_X \n");
+			}
 			if(epint & USB_OTG_DIEPINT_TXFE) //Transmit FIFO Empty.
 			{USART_debug::usart2_sendSTR("Bulk IN USB_OTG_DIEPINT_TXFE\n");}
 			USB_OTG_IN(1)->DIEPINT = epint;//сбрасываем регистр статуса прерываний записью единицы rc_w1 (read/clear_write_1)
@@ -520,16 +527,11 @@ extern "C" void OTG_FS_IRQHandler(void)
 						  */
 						uint8_t size = 64 - (USB_OTG_OUT(1)->DOEPTSIZ & 0xFF); //
 						USB_DEVICE::pThis->resetFlag=size;
-						USART_debug::usart2_sendSTR("DOEPTSIZ=");
-						USART_debug::usart2_send(USB_OTG_OUT(1)->DOEPTSIZ);
-						USART_debug::usart2_sendSTR("\n");
-						USART_debug::usart2_sendSTR("bytesSize=");
-						USART_debug::usart2_send(bytesSize);
-						USART_debug::usart2_sendSTR("\n");
-						if(size)
+						if(bytesSize)
 						{								
-							USB_DEVICE::pThis->read_BULK_FIFO(size); //вычитываем из FIFO количество байт size в буффер BULK_OUT_buf
-							USART_debug::usart2_sendSTR("read_BULK_FIFO\n");
+							USB_DEVICE::pThis->read_BULK_FIFO(bytesSize); //вычитываем из FIFO количество байт size в буффер BULK_OUT_buf
+							//USART_debug::usart2_send(bytesSize);
+							//USART_debug::usart2_sendSTR("r_B_F\n");
 						}
 						//uint32_t dummy = USB_OTG_DFIFO(0);
 					}																
@@ -555,7 +557,7 @@ extern "C" void OTG_FS_IRQHandler(void)
 						//USB_OTG_FS-> GINTMSK |= USB_OTG_GINTMSK_OEPINT;
 						if(epNum==1)
 						{							
-							USART_debug::usart2_sendSTR("BULK_OUT_COMPL \n");
+							//USART_debug::usart2_sendSTR("BULK_OUT_COMPL \n");
 							USB_OTG_OUT(1)->DOEPTSIZ = 0;
 							USB_OTG_OUT(1)->DOEPTSIZ |= (1<<19)|(64<<0) ; //PKNT = 1 (DATA), макс размер пакета 64 байта
 							USB_OTG_OUT(1)->DOEPCTL |= (USB_OTG_DOEPCTL_CNAK | USB_OTG_DOEPCTL_EPENA);

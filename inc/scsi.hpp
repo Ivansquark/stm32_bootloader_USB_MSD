@@ -10,7 +10,7 @@ class SCSI
 public:
 	SCSI();
 	static bool recieveCommandFlag;
-	static bool recieveDataFlag;
+	static bool transiveFifoFlag;
 	uint8_t buf[512];
 	enum SCSI_NAME
 	{
@@ -20,7 +20,7 @@ public:
 			Если устройство готово, то оно возвращает контейнер состояния CSW со значением поля "bCSWStatus" равным "0x00".
 			Если носитель не готов, устройство обновляет подробные данные о состоянии и возвращает контейнер состояния (CSW)
 			со значением поля "bCSWStatus" равным "0x01" (ошибка исполнения). */
-		TEST_UNIT_READY=0x01,
+		TEST_UNIT_READY=0x00,
 		/*!Если хост принял CSW с полем bCSWStatus = 1, он может послать команду REQUEST_SENSE, чтобы запросить пояснительные данные (SENSE DATA).*/
 		REQUEST_SENSE = 0x03, 			
 		/*!< Эта команда запрашивает структуру с информацией об устройстве.
@@ -44,7 +44,7 @@ public:
 	};
 	
 	const uint8_t inquiry[36] = 
-	{
+	{		
         0x00,           //Block device
         0x80,           //Removable media
         0x04,           //SPC-2
@@ -53,9 +53,9 @@ public:
         0x00,
         0x00,
         0x00,
-        'O', 'P', 'A', ' ', 'i', 'n', 'c', '.',
-        'M', 'a', 's', 's', ' ', 'S', 't', 'o', 'r', 'a', 'g', 'e', ' ', ' ', ' ', ' ',
-        '0', '0', '0', '1'
+        'O', 'P', 'A', ' ', 'i', 'n', 'c', '.', //8
+        'M', 'a', 's', 's', ' ', 'S', 't', 'o', 'r', 'a', 'g', 'e', ' ', ' ', ' ', ' ', //16
+        '0', '0', '0', '1' //4
 	};
 	const uint8_t sense_data[18] = 
 	{
@@ -86,6 +86,7 @@ public:
 		uint8_t CBWCB[16];				//командный блок - передаются команды CBW
 	}scsi_cbw_t;
 	/*!Status transport 13 bytes*/
+	#pragma pack(push,1)
 	typedef struct csw
 	{
 		uint32_t dCSWSignature;		//Число 0x53425355
@@ -93,13 +94,15 @@ public:
 		uint32_t dCSWDataResidue;	//Разница между dCBWDataTransferLength и реально обработанными данными
 		uint8_t bCSWStatus;			//0x00 = успешное выполнение. 0x01 = ошибка исполнения. 0x02 = ошибка протокольной последовательности.
 	}scsi_csw_t;
+	#pragma pack(pop)
 	
 	scsi_csw_t CSW = {
 		0x53425355,
+		//0x55534253,
 		0,
 		0,
 		0
-	};
+	};	
 	void SCSI_Execute(uint8_t ep_number);
 };
 

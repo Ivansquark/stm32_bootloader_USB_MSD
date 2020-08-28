@@ -50,9 +50,9 @@ int main()
 			
 		}	
 		font16.intToChar(USB_DEVICE::pThis->resetFlag);
-		font16.print(10,100,0xff00,font16.arr);
+		font16.print(10,100,0x00ff,font16.arr,3);
 		font16.intToChar(USB_DEVICE::pThis->counter);
-		font16.print(100,100,0xff00,font16.arr);
+		font16.print(100,100,0x00ff,font16.arr,3);
 	}
     return 0;
 }
