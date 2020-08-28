@@ -67,7 +67,8 @@ private:
 	//#pragma pack (push,1)
     uint8_t line_code[7]{0};
 	/*!<меняем местами байты в полуслове, т.к. 16 битные величины USB передает наоборот>*/
-	inline uint16_t swap(uint16_t x) {return ((x>>8)&(0x00FF))|((x<<8)&(0xFF00));}
+	inline uint16_t swap(uint16_t x) __attribute__( ( always_inline) )
+	{return ((x>>8)&(0x00FF))|((x<<8)&(0xFF00));}
     void usb_init();      
 	void ep_1_2_init();  
 	inline void stall();
@@ -80,18 +81,7 @@ private:
 	void cdc_get_encapsulated_command();
 	//void getConfiguration();
     //void Set_CurrentConfiguration(uint16_t value);
-	/*!<----------SCSI HANDLER------------->!*/
-	void scsi_inquiry(void);
-	void scsi_read_format_capacities(void);
-	void scsi_request_sence(void);
-	void scsi_read_capacity_10(void);
-	void scsi_mode_sense_6(void);
-	void scsi_test_unit_ready(void);
-	void scsi_prevent_allow_medium_removal(void);
-	void scsi_read_10(void);
-	void scsi_write_10(void);
-	void scsi_error(void);
-    
+	    
     uint16_t MIN(uint16_t len, uint16_t wLength);
     void WriteFIFO(uint8_t fifo_num, const uint8_t *src, uint16_t len);    
 };

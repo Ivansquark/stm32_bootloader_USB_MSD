@@ -157,7 +157,7 @@ void USB_DEVICE::Enumerate_Setup(void)
     USART_debug::usart2_sendSTR("GET_ENCAPSULATED_RESPONSE\n");
       cdc_get_encapsulated_command();  
       break;
-    case GetMaxLun:
+    case GetMaxLun:  //возвращаем 0 
     USART_debug::usart2_sendSTR("GetMaxLun\n");
     break; 
 	case CLEAR_FEATURE_ENDP:
@@ -174,7 +174,7 @@ void USB_DEVICE::Enumerate_Setup(void)
   }   
   WriteINEP(0x00,pbuf,MIN(len, setupPack.setup.wLength));   // записываем в конечную точку адрес дескриптора и его размер (а также запрошенный размер)
 }
-
+//------------------------------------------------------------------------------------
 void USB_DEVICE::SetAdr(uint16_t value)
 {  
     ADDRESS=value;
@@ -187,6 +187,14 @@ void USB_DEVICE::SetAdr(uint16_t value)
 	// необходимо выставить подтверждение принятия пакета выставления адреса 	  
 }
 //-----------------------------------------------------------------------------------------
+
+uint16_t USB_DEVICE::MIN(uint16_t len, uint16_t wLength)
+{
+    uint16_t x=0;
+    (len<wLength) ? x=len : x=wLength;
+    return x;
+}
+//--------------------------------------------------------------------------------------------
 void USB_DEVICE::WriteINEP(uint8_t EPnum,const uint8_t* buf,uint16_t minLen)
 {
 	USB_OTG_IN(EPnum)->DIEPTSIZ =0;
@@ -195,15 +203,10 @@ void USB_DEVICE::WriteINEP(uint8_t EPnum,const uint8_t* buf,uint16_t minLen)
 	USB_OTG_IN(EPnum)->DIEPTSIZ |= (Pcnt<<19)|(minLen);
 	/*!<количество передаваемых пакетов (по прерыванию USB_OTG_DIEPINT_XFRC передается один пакет)>*/
 	USB_OTG_IN(EPnum)->DIEPCTL |= (USB_OTG_DIEPCTL_CNAK | USB_OTG_DIEPCTL_EPENA); //выставляем перед записью
-	if(minLen) WriteFIFO(EPnum, (const uint8_t*)buf, minLen); //если нет байтов передаем пустой пакет    
+	if(minLen) WriteFIFO(EPnum, (const uint8_t*)buf, minLen); 
+	else{};//если нет байтов передаем пустой пакет    
 }
 //---------------------------------------------------------------------------------------------------
-uint16_t USB_DEVICE::MIN(uint16_t len, uint16_t wLength)
-{
-    uint16_t x=0;
-    (len<wLength) ? x=len : x=wLength;
-    return x;
-}
 void USB_DEVICE::WriteFIFO(uint8_t fifo_num, const uint8_t *src, uint16_t len)
 {
     uint32_t words2write = (len+3)>>2; // делим на четыре    
@@ -212,11 +215,11 @@ void USB_DEVICE::WriteFIFO(uint8_t fifo_num, const uint8_t *src, uint16_t len)
         /*!<закидываем в fifo 32-битные слова>*/
         USB_OTG_DFIFO(fifo_num) = *((__packed uint32_t *)src);                
     }
+	USART_debug::usart2_sendSTR("W1= ");
     USART_debug::usart2_send(len);
-	USART_debug::usart2_sendSTR("W1\n");
-	    
+	USART_debug::usart2_sendSTR(" W1\n");	    
 }
-
+//---------------------------------------------------------------------------------------------
 void USB_DEVICE::ReadSetupFIFO(void)
 {  
   //Прочитать SETUP пакет из FIFO, он всегда 8 байт
@@ -224,9 +227,10 @@ void USB_DEVICE::ReadSetupFIFO(void)
   // тем самым считывается первые 4 байта из Rx_FIFO
   *(((uint32_t *)&setupPack)+1) = USB_OTG_DFIFO(0); // заполняем вторую часть структуры (очень мудрено сделано)	
 }
+//----------------------------------------------------------------------------------------------
 void USB_DEVICE::ep_1_2_init()
 {  
-  /*!<EP1_IN, EP2_OUT - BULK>*/
+  /*!<EP1_IN, EP1_OUT - BULK>*/
   USB_OTG_IN(1)->DIEPCTL|=64;// 64 байта в пакете
   USB_OTG_IN(1)->DIEPCTL|=USB_OTG_DIEPCTL_EPTYP_1;
   USB_OTG_IN(1)->DIEPCTL&=~USB_OTG_DIEPCTL_EPTYP_0; //1:0 - BULK
@@ -291,27 +295,6 @@ void USB_DEVICE::cdc_send_break()
 void USB_DEVICE::cdc_send_encapsulated_command()
 {}
 void USB_DEVICE::cdc_get_encapsulated_command()
-{}
-
-void USB_DEVICE::scsi_inquiry(void)
-{}
-void USB_DEVICE::scsi_read_format_capacities(void)
-{}
-void USB_DEVICE::scsi_request_sence(void)
-{}
-void USB_DEVICE::scsi_read_capacity_10(void)
-{}
-void USB_DEVICE::scsi_mode_sense_6(void)
-{}
-void USB_DEVICE::scsi_test_unit_ready(void)
-{}
-void USB_DEVICE::scsi_prevent_allow_medium_removal(void)
-{}
-void USB_DEVICE::scsi_read_10(void)
-{}
-void USB_DEVICE::scsi_write_10(void)
-{}
-void USB_DEVICE::scsi_error(void)
 {}
 
 void USB_DEVICE::read_BULK_FIFO(uint8_t size)
@@ -492,14 +475,12 @@ extern "C" void OTG_FS_IRQHandler(void)
 			/*!<Когда приложение прочитало все данные, ядро генерирует прерывание XFRC>*/ 
 			if(epint & USB_OTG_DOEPINT_XFRC)
 			{
-				/*!<разгребаем принятые данные в буфере приема BULK точки>*/				
-				//SCSI::recieveCommandFlag=true; //обрабатываем принятый пакет c командами SCSI
-				SCSI::recieveCommandFlag=true;								
+				/*!<разгребаем принятые данные в буфере приема BULK точки (in main)>*/				
+				SCSI::recieveCommandFlag=true;	//обрабатываем принятый пакет c командами SCSI
 			}						
 			//----------------------------------------------------------------------
 		    USB_OTG_OUT(1)->DOEPINT = epint; //сбрасываем регистр статуса прерываний записью единицы rc_w1 (read/clear_write_1)
-		}
-								
+		}								
 			//----------------------------------------------------------------------
 		
 		USB_OTG_FS-> GINTMSK |= USB_OTG_GINTMSK_OEPINT; //IN EndPoints INTerrupt mask. Разрешаем прерывание конечных точек IN
@@ -527,14 +508,24 @@ extern "C" void OTG_FS_IRQHandler(void)
 				{
 					//USART_debug::usart2_sendSTR("OUT packet\n");					
 					 
-				//!другие пакеты (BULK) принимается всегда один DATA пакет после OUT пакета					  
+				//!другие пакеты (BULK) принимается всегда один DATA пакет размером 64 байта после OUT пакета					  
 					if (epNum == 1)
 					{/*!< считываем Rx_FIFO в очередь>*/
 						/*!<необходимо записать принятые байты в память (в буфер очереди)>*/
-						uint8_t size = 64 - (USB_OTG_OUT(1)->DOEPTSIZ & 0xFF);
+						 //TODO: разобраться с этим  (необходимо вычитывать из FIFO ровно столько сколько там лежит)
+						 /* 
+						  * изначально в USB_OTG_OUT(1)->DOEPTSIZ записано 64
+						  * при чтении из RxFIFO это значение уменьшается, следовательно
+						  * для указания сколько байт вычитывать из FIFO необходимо указывать bytesSize
+						  */
+						uint8_t size = 64 - (USB_OTG_OUT(1)->DOEPTSIZ & 0xFF); //
 						USB_DEVICE::pThis->resetFlag=size;
-						USART_debug::usart2_send(size);
-						//USB_DEVICE::pThis->resetFlag=size;
+						USART_debug::usart2_sendSTR("DOEPTSIZ=");
+						USART_debug::usart2_send(USB_OTG_OUT(1)->DOEPTSIZ);
+						USART_debug::usart2_sendSTR("\n");
+						USART_debug::usart2_sendSTR("bytesSize=");
+						USART_debug::usart2_send(bytesSize);
+						USART_debug::usart2_sendSTR("\n");
 						if(size)
 						{								
 							USB_DEVICE::pThis->read_BULK_FIFO(size); //вычитываем из FIFO количество байт size в буффер BULK_OUT_buf
@@ -559,12 +550,12 @@ extern "C" void OTG_FS_IRQHandler(void)
 		{
 			switch (status) 
 			{
-				case 0x03: 
+				case 0x03: //OUT complete
 				/*<После того, как эта запись была извлечена из RxFIFO, ядро выставляет прерывание XFRC на указанной конечной точке OUT>*/
 						//USB_OTG_FS-> GINTMSK |= USB_OTG_GINTMSK_OEPINT;
 						if(epNum==1)
 						{							
-							//USART_debug::usart2_sendSTR("BULK_OUT_COMPL \n");
+							USART_debug::usart2_sendSTR("BULK_OUT_COMPL \n");
 							USB_OTG_OUT(1)->DOEPTSIZ = 0;
 							USB_OTG_OUT(1)->DOEPTSIZ |= (1<<19)|(64<<0) ; //PKNT = 1 (DATA), макс размер пакета 64 байта
 							USB_OTG_OUT(1)->DOEPCTL |= (USB_OTG_DOEPCTL_CNAK | USB_OTG_DOEPCTL_EPENA);

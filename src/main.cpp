@@ -40,14 +40,19 @@ int main()
 	//flash.write_any_buf(last_page,&b,4);
 	while(1)
 	{
-		//flash_read_buf(last_page,&b,4);
+		//flash_read_buf(last_pagёe,&b,4);
 		//font16.intToChar(b.z);
 		//font16.print(10,10,0x00ff,font16.arr,2);		
 		if(scsi.recieveCommandFlag)
 		{
 			//USART_debug::usart2_sendSTR("\n Execute \n");
-			scsi.SCSI_Execute(1);			
-		}		
+			scsi.SCSI_Execute(1); //обработка протокола SCSI лежащего в приемном буффере устройства	
+			
+		}	
+		font16.intToChar(USB_DEVICE::pThis->resetFlag);
+		font16.print(10,100,0xff00,font16.arr);
+		font16.intToChar(USB_DEVICE::pThis->counter);
+		font16.print(100,100,0xff00,font16.arr);
 	}
     return 0;
 }

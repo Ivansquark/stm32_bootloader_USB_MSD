@@ -11,7 +11,7 @@ void SCSI::SCSI_Execute(uint8_t ep_number)
 	uint32_t i, n;
     //uint32_t status;
     uint8_t j;	
-	/* приняли данные в EP1, Натягиваем scsi_cbw на приемный буфер*/
+	/* приняли данные в EP1, Натягиваем scsi_cbw_t на приемный буфер*/
     scsi_cbw_t *cbw = (scsi_cbw_t *)USB_DEVICE::pThis->BULK_OUT_buf;
 	//Если пакет успешно принят
     if (cbw->dCBWSignature==0x43425355)
@@ -23,16 +23,15 @@ void SCSI::SCSI_Execute(uint8_t ep_number)
 		{
 		/*!Если INQUIRY*/
         case INQUIRY:
-		USART_debug::usart2_sendSTR("\n INQUIRY \n");
+		//USART_debug::usart2_sendSTR("\n INQUIRY \n");
 		
 		//Проверка битов EVPD и CMDDT
             if (cbw -> CBWCB[1] == 0)
 			{
-				//Передаем стандартный ответ на INQUIRY
-				
+				//Передаем стандартный ответ на INQUIRY				
                 USB_DEVICE::pThis->WriteINEP(ep_number, inquiry, cbw -> CBWCB[4]);				
-				USART_debug::usart2_send(cbw->CBWCB[4]);
-				USART_debug::usart2_sendSTR(" standINQUIRY \n");
+				USART_debug::usart2_send(cbw->CBWCB[4]); //размер
+				//USART_debug::usart2_sendSTR(" standINQUIRY \n");
 				//Заполняем поля CSW
                 CSW.dCSWDataResidue = (cbw -> dCBWDataTransferLength) - cbw -> CBWCB[4];
 				//Команда выполнилась успешно
@@ -68,14 +67,17 @@ void SCSI::SCSI_Execute(uint8_t ep_number)
         USB_DEVICE::pThis->WriteINEP(ep_number, (uint8_t *)&CSW, 13);
         break;
 		/*! Если READ_CAPACITY_10*/
-		case READ_CAPACITY_10:
-		USART_debug::usart2_sendSTR("\n READ_CAPACITY_10 \n");
+		case READ_CAPACITY_10:		
 		//Передаем структуру
+		//TODO: надо узнать есть ли в передающем FIFO что то до момента отправки
+		USB_DEVICE::pThis->counter = USB_OTG_IN(1)->DIEPTSIZ & 0xFFFF;
+		//USB_DEVICE::pThis->counter = USB_OTG_IN(1)->DTXFSTS; //размер оставшегося места в FIFO
         USB_DEVICE::pThis->WriteINEP(ep_number, capacity, 8);
 		//Заполняем и передаем CSW
         CSW.dCSWDataResidue = (cbw -> dCBWDataTransferLength) - cbw -> CBWCB[4];
         CSW.bCSWStatus = 0x00;
         USB_DEVICE::pThis->WriteINEP(ep_number, (uint8_t *)&CSW, 13);
+		USART_debug::usart2_sendSTR("\n READ_CAPACITY_10 \n");
         break;
 		/*!--MODE_SENSE_6--*/
 		case MODE_SENSE_6:
@@ -146,7 +148,7 @@ USART_debug::usart2_sendSTR("\n TEST_UNIT_READY \n");
 		CSW.bCSWStatus = 0x00;
 		USB_DEVICE::pThis->WriteINEP(ep_number, (uint8_t *)&CSW, 13);
 		break;
-		//Неизвестная команда
+		//Неизвестная команда  отвечаем ошибкой
         default:
 		//Заполняем поля CSW
             CSW.dCSWDataResidue = (cbw -> dCBWDataTransferLength);
