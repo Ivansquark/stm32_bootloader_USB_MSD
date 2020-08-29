@@ -43,19 +43,21 @@ void SCSI::SCSI_Execute(uint8_t ep_number)
 				while(transiveFifoFlag);
         	    USB_DEVICE::pThis->WriteINEP(ep_number, (uint8_t *)&CSW, 13); //статус всегда ин пакет
 				//USB_DEVICE::pThis->counter = (CSW);        
-				USART_debug::usart2_sendSTR(" statINQ \n");				
+				USART_debug::usart2_sendSTR("stI\n");				
 			} else 
 			{
-				USART_debug::usart2_sendSTR(" errorINQUIRY \n");
+				USART_debug::usart2_sendSTR("errorI\n");
 				//Заполняем поля CSW
         	    CSW.dCSWDataResidue = (cbw -> dCBWDataTransferLength);
 				//Сообщаем об ошибке выполнения команды
         	    CSW.bCSWStatus = 0x01;
 				//Посылаем контейнер состояния
+				while(transiveFifoFlag);
         	    USB_DEVICE::pThis->WriteINEP(ep_number, (uint8_t *)&CSW, 13);
 				//Подтверждаем
         	    CSW.bCSWStatus = 0x00;
 				//Посылаем контейнер состояния
+				while(transiveFifoFlag);
         	    USB_DEVICE::pThis->WriteINEP(ep_number, (uint8_t *)&CSW, 13);
         	}
     	break;
@@ -80,8 +82,6 @@ void SCSI::SCSI_Execute(uint8_t ep_number)
 		//USB_OTG_FS->GRSTCTL = USB_OTG_GRSTCTL_TXFFLSH | USB_OTG_GRSTCTL_TXFNUM;
 		//while (USB_OTG_FS->GRSTCTL & USB_OTG_GRSTCTL_TXFFLSH); //очищаем Tx_FIFO, которое почему то переполняется	
 		//Передаем структуру
-		//TODO: надо узнать есть ли в передающем FIFO что то до момента отправки
-		//USB_DEVICE::pThis->counter = USB_OTG_IN(1)->DIEPTSIZ & 0xFFFF;
 		while(transiveFifoFlag);
 		USB_DEVICE::pThis->WriteINEP(ep_number, capacity, 8);
 		//Заполняем и передаем CSW
@@ -116,10 +116,6 @@ void SCSI::SCSI_Execute(uint8_t ep_number)
 			Flash::pThis->read_buf(Flash::FLASH_PROGRAMM_ADDRESS+i, buf, 512);
 			//Так как размер конечной точки 64 байта, передаем 512 байт за 8 раз
 			uint32_t count=0;
-			//USB_DEVICE::pThis->WriteINEP(ep_number, (buf), 0);
-			//USB_DEVICE::pThis->WriteINEP(ep_number, buf, 512);
-			//USB_DEVICE::pThis->WriteINEP(ep_number, (const uint8_t*)(inquiry), 36);
-			//while(transiveFifoFlag);
 			for (j = 0; j < 8; j++)
 			{				
 				//Передаем часть буфера
@@ -130,16 +126,16 @@ void SCSI::SCSI_Execute(uint8_t ep_number)
 				USB_DEVICE::pThis->counter = count;
 				while(transiveFifoFlag);
 			}
+			USB_DEVICE::pThis->WriteINEP(ep_number, (buf), 0);//ZLP
+			//USB_DEVICE::pThis->TxFifoFlush();
 		}
-		USB_DEVICE::pThis->WriteINEP(ep_number, (buf), 0);//ZLP
+		
 		//Заполняем и посылаем CSW
 		CSW.dCSWDataResidue = (cbw -> dCBWDataTransferLength) - cbw -> CBWCB[4];
 		CSW.bCSWStatus = 0x00;
-		USB_DEVICE::pThis->counter=USB_OTG_IN(1)->DTXFSTS;
-		while(transiveFifoFlag);
-		USB_OTG_FS->GRSTCTL = USB_OTG_GRSTCTL_TXFFLSH | USB_OTG_GRSTCTL_TXFNUM;
-		while (USB_OTG_FS->GRSTCTL & USB_OTG_GRSTCTL_TXFFLSH); //очищаем Tx_FIFO, которое почему то переполняется
-		for(uint32_t i=0;i<1000000;i++);//pause to recieve ZLP
+		USB_DEVICE::pThis->counter=USB_OTG_IN(2)->DTXFSTS;
+		while(transiveFifoFlag);		
+		for(uint32_t i=0;i<10000;i++);//pause to recieve ZLP
 		USB_DEVICE::pThis->WriteINEP(ep_number, (uint8_t *)&CSW, 13);
 		USART_debug::usart2_sendSTR("Read_and \n");
 		
@@ -160,7 +156,7 @@ void SCSI::SCSI_Execute(uint8_t ep_number)
 			{
 				//TODO: реализовать чтение fifo по флагу
 				//TODO: если FIFO заполнен
-				//USB_DEVICE::read_BULK_FIFO(64);
+				USB_DEVICE::pThis->read_BULK_FIFO(64);
 				for(uint8_t j=0;j<64;j++)
 				{
 					buf[j+i]=USB_DEVICE::pThis->BULK_OUT_buf[j]; //заполнение массива 8 раз подряд
@@ -168,7 +164,7 @@ void SCSI::SCSI_Execute(uint8_t ep_number)
 				for(uint32_t i=0;i<300000;i++);//;ждем пока данные снова заполнят FIFO
 			}
 		//Записываем прочитанный блок во FLASH
-			//Flash::pThis->write_any_buf(i, buf, 512);
+			Flash::pThis->write_any_buf(Flash::FLASH_PROGRAMM_ADDRESS+i, buf, 512);
 		}
 		//Заполняем и посылаем CSW
 		CSW.dCSWDataResidue = (cbw -> dCBWDataTransferLength ) - cbw -> CBWCB[4];

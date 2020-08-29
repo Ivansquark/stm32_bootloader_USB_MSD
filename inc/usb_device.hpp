@@ -9,9 +9,9 @@
 
 #define RX_FIFO_SIZE         64 //размер очередей в 32 битных словах
 #define TX_EP0_FIFO_SIZE     64
-#define TX_EP1_FIFO_SIZE     256
-#define TX_EP2_FIFO_SIZE     128
-#define TX_EP3_FIFO_SIZE     128
+#define TX_EP1_FIFO_SIZE     128//256
+#define TX_EP2_FIFO_SIZE     256//128
+#define TX_EP3_FIFO_SIZE     0//128
 //адреса разных FIFO
 #define USB_OTG_DFIFO(i) *(__IO uint32_t *)((uint32_t)USB_OTG_FS_PERIPH_BASE + USB_OTG_FIFO_BASE + (i) * USB_OTG_FIFO_SIZE) 
 
@@ -37,7 +37,12 @@ public:
 	void read_BULK_FIFO(uint8_t size);
 	void WriteINEP(uint8_t EPnum,const uint8_t* buf,uint16_t minLen);
 	void cdc_set_line_coding(uint8_t size);
-	
+
+	inline void TxFifoFlush() __attribute__( (always_inline) )
+	{
+		USB_OTG_FS->GRSTCTL = USB_OTG_GRSTCTL_TXFFLSH | USB_OTG_GRSTCTL_TXFNUM;
+		while (USB_OTG_FS->GRSTCTL & USB_OTG_GRSTCTL_TXFFLSH); //очищаем Tx_FIFO, которое почему то переполняется
+	}
 	uint8_t BULK_BUF[64]{0};
     
 	#pragma pack(push, 1)

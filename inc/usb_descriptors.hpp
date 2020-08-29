@@ -56,7 +56,7 @@ constexpr uint8_t Device_Descriptor[18] =
 			/*Endpoint 1 IN Descriptor*/
 			0x07, /* bLength: Endpoint Descriptor size */
 			0x05, /* bDescriptorType: Endpoint */
-			0x81, /* bEndpointAddress IN2  8-IN 1-endpoint1*/
+			0x82, /* bEndpointAddress IN2  8-IN 2-endpoint2*/
 			0x02, /* bmAttributes: Data endpoint (D5-D4), No synchronization (D3-D2), Bulk transfer type (D1-D0) */
 			64, /* wMaxPacketSize LO: */
 			0x00, /* wMaxPacketSize HI: */
@@ -66,7 +66,7 @@ constexpr uint8_t Device_Descriptor[18] =
 			/*Endpoint 1 OUT Descriptor*/
 			0x07, /* bLength: Endpoint Descriptor size */
 			0x05, /* bDescriptorType: Endpoint */
-			0x01, /* bEndpointAddress OUT1  0-OUT 1-endpoint1*/
+			0x02, /* bEndpointAddress OUT1  0-OUT 2-endpoint2*/
 			0x02, /* bmAttributes: Data endpoint (D5-D4), No synchronization (D3-D2), Bulk transfer type (D1-D0) */
 			64, /* wMaxPacketSize LO: */
 			0x00, /* wMaxPacketSize HI: */

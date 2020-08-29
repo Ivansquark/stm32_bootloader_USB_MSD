@@ -46,7 +46,7 @@ int main()
 		if(scsi.recieveCommandFlag)
 		{
 			//USART_debug::usart2_sendSTR("\n Execute \n");
-			scsi.SCSI_Execute(1); //обработка протокола SCSI лежащего в приемном буффере устройства	
+			scsi.SCSI_Execute(2); //обработка протокола SCSI лежащего в приемном буффере устройства	
 			
 		}	
 		font16.intToChar(USB_DEVICE::pThis->resetFlag);
