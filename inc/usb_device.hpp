@@ -7,9 +7,9 @@
 #include "usart1.h"
 #include "scsi.hpp"
 
-#define RX_FIFO_SIZE         128 //размер очередей в 32 битных словах
-#define TX_EP0_FIFO_SIZE     128
-#define TX_EP1_FIFO_SIZE     128
+#define RX_FIFO_SIZE         64 //размер очередей в 32 битных словах
+#define TX_EP0_FIFO_SIZE     64
+#define TX_EP1_FIFO_SIZE     256
 #define TX_EP2_FIFO_SIZE     128
 #define TX_EP3_FIFO_SIZE     128
 //адреса разных FIFO

@@ -57,7 +57,8 @@ void USB_DEVICE::fifo_init()
 	  USB_OTG_FS->DIEPTXF0_HNPTXFSIZ = (TX_EP0_FIFO_SIZE<<16) | RX_FIFO_SIZE; 
 	  //! IN endpoint transmit fifo size register
 	  USB_OTG_FS->DIEPTXF[0] = (TX_EP1_FIFO_SIZE<<16) | (RX_FIFO_SIZE+TX_EP0_FIFO_SIZE);  //!размер и адрес Tx_FIFO  для EP1
-	  USB_OTG_FS->DIEPTXF[1] = (TX_EP2_FIFO_SIZE<<16) | (RX_FIFO_SIZE+TX_EP0_FIFO_SIZE+TX_EP1_FIFO_SIZE); //!размер и адрес Tx_FIFO  для EP2
+	  USB_OTG_FS->DIEPTXF[1]=0;
+	  //USB_OTG_FS->DIEPTXF[1] = (TX_EP2_FIFO_SIZE<<16) | (RX_FIFO_SIZE+TX_EP0_FIFO_SIZE+TX_EP1_FIFO_SIZE); //!размер и адрес Tx_FIFO  для EP2
 	  //USB_OTG_FS->DIEPTXF[2] = (TX_EP3_FIFO_SIZE<<16) | (RX_FIFO_SIZE+TX_EP0_FIFO_SIZE+TX_EP1_FIFO_SIZE+TX_EP2_FIFO_SIZE); //! размер и адрес Tx_FIFO  для EP3
 	  USB_OTG_FS->DIEPTXF[2] = 0;
 	  // 1 пакета SETUP, CNT=1, endpoint 0 OUT transfer size register
@@ -198,12 +199,14 @@ void USB_DEVICE::WriteINEP(uint8_t EPnum,const uint8_t* buf,uint16_t minLen)
 {
 	//USB_OTG_IN(EPnum)->DIEPTSIZ =0;
 	/*!<записать количество пакетов и размер посылки>*/
-	uint8_t Pcnt = minLen/64 + 1;  
+	USB_OTG_IN(EPnum)->DIEPTSIZ=0;
+	uint8_t Pcnt = (minLen-1)/64 + 1;  
 	USB_OTG_IN(EPnum)->DIEPTSIZ |= (Pcnt<<19)|(minLen);
 	/*!<количество передаваемых пакетов (по прерыванию USB_OTG_DIEPINT_XFRC передается один пакет)>*/
 	USB_OTG_IN(EPnum)->DIEPCTL |= (USB_OTG_DIEPCTL_CNAK | USB_OTG_DIEPCTL_EPENA); //выставляем перед записью
-	if(minLen) WriteFIFO(EPnum, (const uint8_t*)buf, minLen); 
-	else{};//если нет байтов передаем пустой пакет    
+	WriteFIFO(EPnum, buf, minLen); 
+	//if(minLen) WriteFIFO(EPnum, (const uint8_t*)buf, minLen); 
+	//else{};//если нет байтов передаем пустой пакет    
 }
 //---------------------------------------------------------------------------------------------------
 void USB_DEVICE::WriteFIFO(uint8_t fifo_num, const uint8_t *src, uint16_t len)
@@ -214,7 +217,8 @@ void USB_DEVICE::WriteFIFO(uint8_t fifo_num, const uint8_t *src, uint16_t len)
         /*!<закидываем в fifo 32-битные слова>*/
         USB_OTG_DFIFO(fifo_num) = *((__packed uint32_t *)src);                
     }
-	SCSI::transiveFifoFlag=true;
+	if(len)
+	{SCSI::transiveFifoFlag=true;}	
 	//if (SCSI::recieveCommandFlag)
 	//{
 	//	USART_debug::usart2_sendSTR("W1= ");
@@ -525,8 +529,7 @@ extern "C" void OTG_FS_IRQHandler(void)
 						  * при чтении из RxFIFO это значение уменьшается, следовательно
 						  * для указания сколько байт вычитывать из FIFO необходимо указывать bytesSize
 						  */
-						uint8_t size = 64 - (USB_OTG_OUT(1)->DOEPTSIZ & 0xFF); //
-						USB_DEVICE::pThis->resetFlag=size;
+						uint8_t size = 64 - (USB_OTG_OUT(1)->DOEPTSIZ & 0xFF); //						
 						if(bytesSize)
 						{								
 							USB_DEVICE::pThis->read_BULK_FIFO(bytesSize); //вычитываем из FIFO количество байт size в буффер BULK_OUT_buf

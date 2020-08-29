@@ -14,13 +14,14 @@ void SCSI::SCSI_Execute(uint8_t ep_number)
 	/* приняли данные в EP1, Натягиваем scsi_cbw_t на приемный буфер*/
     scsi_cbw_t *cbw = (scsi_cbw_t *)USB_DEVICE::pThis->BULK_OUT_buf;
 	//Если пакет успешно принят
+	USB_DEVICE::pThis->resetFlag=cbw -> CBWCB[0];
 	recieveCommandFlag=false;
 	if (cbw->dCBWSignature==0x43425355)
 	{
 	//Сразу копируем значение dCBWTag в CSW.dCSWTag
         CSW.dCSWTag = (cbw -> dCBWTag);
-	//Определяем пришедшую команду
-	USB_DEVICE::pThis->counter = cbw -> CBWCB[0];
+		//USB_DEVICE::pThis->counter = cbw -> CBWCB[0];
+	//Определяем пришедшую команду	
     	switch (cbw -> CBWCB[0])
 		{
 		/*!Если INQUIRY*/
@@ -112,20 +113,36 @@ void SCSI::SCSI_Execute(uint8_t ep_number)
 		for ( ; i < n; i++)
 		{
 			//Читаем блок из FLASH, помещаем в массив uint8_t buf[512]
-			Flash::pThis->read_buf(i, buf, 512);
+			Flash::pThis->read_buf(Flash::FLASH_PROGRAMM_ADDRESS+i, buf, 512);
 			//Так как размер конечной точки 64 байта, передаем 512 байт за 8 раз
+			uint32_t count=0;
+			//USB_DEVICE::pThis->WriteINEP(ep_number, (buf), 0);
+			//USB_DEVICE::pThis->WriteINEP(ep_number, buf, 512);
+			//USB_DEVICE::pThis->WriteINEP(ep_number, (const uint8_t*)(inquiry), 36);
+			//while(transiveFifoFlag);
 			for (j = 0; j < 8; j++)
-			{
+			{				
 				//Передаем часть буфера
+				count++;
 				while(transiveFifoFlag);
-				USB_DEVICE::pThis->WriteINEP(ep_number, (uint8_t *)&buf[64*j], 64);
+				USB_DEVICE::pThis->WriteINEP(ep_number, (buf+j*64), 64);
+				//USART_debug::usart2_sendSTR("\n R_F \n");
+				USB_DEVICE::pThis->counter = count;
+				while(transiveFifoFlag);
 			}
 		}
+		USB_DEVICE::pThis->WriteINEP(ep_number, (buf), 0);//ZLP
 		//Заполняем и посылаем CSW
 		CSW.dCSWDataResidue = (cbw -> dCBWDataTransferLength) - cbw -> CBWCB[4];
 		CSW.bCSWStatus = 0x00;
+		USB_DEVICE::pThis->counter=USB_OTG_IN(1)->DTXFSTS;
 		while(transiveFifoFlag);
+		USB_OTG_FS->GRSTCTL = USB_OTG_GRSTCTL_TXFFLSH | USB_OTG_GRSTCTL_TXFNUM;
+		while (USB_OTG_FS->GRSTCTL & USB_OTG_GRSTCTL_TXFFLSH); //очищаем Tx_FIFO, которое почему то переполняется
+		for(uint32_t i=0;i<1000000;i++);//pause to recieve ZLP
 		USB_DEVICE::pThis->WriteINEP(ep_number, (uint8_t *)&CSW, 13);
+		USART_debug::usart2_sendSTR("Read_and \n");
+		
 		break;
 //---------------------------------------------------------------------------------		
 		case WRITE_10:

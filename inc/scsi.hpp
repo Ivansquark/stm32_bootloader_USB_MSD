@@ -12,6 +12,7 @@ public:
 	static bool recieveCommandFlag;
 	static bool transiveFifoFlag;
 	uint8_t buf[512];
+	const uint8_t buf1[512]={0};
 	enum SCSI_NAME
 	{
 		/*!выяснения степени готовности устройства к работе.*/
@@ -67,7 +68,7 @@ public:
 	};
 	const uint8_t capacity[8] = 
 	{
-			0x00, 0x00, 0x00, 0x04, //Addr last blocks =  4*512- 1 =2047 bytes
+			0x00, 0x00, 0x00, 0x00, //Addr last blocks =  4*512- 1 =2047 bytes
 			0x00, 0x00, 0x02, 0x00      //Size blocks = 512 bytes
 	};
 	const uint8_t mode_sense_6[4] = 
