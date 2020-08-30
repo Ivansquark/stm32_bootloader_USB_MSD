@@ -538,9 +538,12 @@ extern "C" void OTG_FS_IRQHandler(void)
 						  */
 						//uint8_t size = 64 - (USB_OTG_OUT(1)->DOEPTSIZ & 0xFF); //						
 						if(bytesSize)
-						{								
-							USB_DEVICE::pThis->read_BULK_FIFO(bytesSize); //вычитываем из FIFO количество байт size в буффер BULK_OUT_buf
-							//USART_debug::usart2_send(bytesSize);
+						{				
+							if(bytesSize!=64)
+							{//вычитываем из FIFO количество байт size в буффер BULK_OUT_buf							
+								USB_DEVICE::pThis->read_BULK_FIFO(bytesSize);
+							}//если равно 64 => в FIFO данные для записи во флэш (вычитываем в WRITE_10) 
+							 //USART_debug::usart2_send(bytesSize);
 							//USART_debug::usart2_sendSTR("r_B_F\n");
 						}
 						//uint32_t dummy = USB_OTG_DFIFO(0);

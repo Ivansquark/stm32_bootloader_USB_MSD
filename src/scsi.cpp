@@ -148,6 +148,7 @@ void SCSI::SCSI_Execute(uint8_t ep_number)
 		i = ((cbw -> CBWCB[2] << 24) | (cbw -> CBWCB[3] << 16) | (cbw -> CBWCB[4] << 8) | (cbw -> CBWCB[5]));
 		//записываем в n адрес последнего записываемого блока
 		n = i + ((cbw -> CBWCB[7] << 8) | cbw -> CBWCB[8]);
+		for(uint32_t i=0;i<10000;i++);//;ждем пока данные снова заполнят FIFO
 		//выполняем чтение и запись блоков
 		for ( ; i < n; i++)
 		{
@@ -157,11 +158,12 @@ void SCSI::SCSI_Execute(uint8_t ep_number)
 				//TODO: реализовать чтение fifo по флагу
 				//TODO: если FIFO заполнен
 				USB_DEVICE::pThis->read_BULK_FIFO(64);
-				for(uint8_t j=0;j<64;j++)
+				for(uint8_t k=0;k<64;k++)
 				{
-					buf[j+i]=USB_DEVICE::pThis->BULK_OUT_buf[j]; //заполнение массива 8 раз подряд
+					buf[64*j+k]=USB_DEVICE::pThis->BULK_OUT_buf[k]; //заполнение массива 8 раз подряд
 				}
-				for(uint32_t i=0;i<300000;i++);//;ждем пока данные снова заполнят FIFO
+				for(uint32_t i=0;i<10000;i++);//;ждем пока данные снова заполнят FIFO
+				USART_debug::usart2_sendSTR("\n WR_BULK_10 \n");
 			}
 		//Записываем прочитанный блок во FLASH
 			Flash::pThis->write_any_buf(Flash::FLASH_PROGRAMM_ADDRESS+i, buf, 512);
@@ -171,13 +173,14 @@ void SCSI::SCSI_Execute(uint8_t ep_number)
 		CSW.bCSWStatus = 0x00;
 		while(transiveFifoFlag);
 		USB_DEVICE::pThis->WriteINEP(ep_number, (uint8_t *)&CSW, 13);
+		USART_debug::usart2_sendSTR("\n WR_10 \n");
 		break;
 //----------------------------------------------------------
 		case TEST_UNIT_READY:
 		USART_debug::usart2_sendSTR("\n TEST_UNIT_READY \n");		
 		CSW.dCSWDataResidue = (cbw -> dCBWDataTransferLength);
 		CSW.bCSWStatus = 0x00;
-		while(transiveFifoFlag);
+		//while(transiveFifoFlag);
 		USB_DEVICE::pThis->WriteINEP(ep_number, (uint8_t *)&CSW, 13);
 		break;
 //-------------------------------------------------------------		
