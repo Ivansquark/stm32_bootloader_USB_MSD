@@ -19,13 +19,13 @@ typedef struct
 
 SCSI scsi;
 Flash flash;
+QueT<uint8_t,512> que;
 
 	
 
 int main()
 {		
-    RCCini rcc;	//! 72 MHz
-	
+    RCCini rcc;	//! 72 MHz	
 	RCC->APB2ENR|=RCC_APB2ENR_IOPBEN;
 	RCC->APB2ENR|=RCC_APB2ENR_AFIOEN;
 	AFIO->MAPR|=AFIO_MAPR_SWJ_CFG_JTAGDISABLE;

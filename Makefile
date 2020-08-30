@@ -36,8 +36,9 @@ main.bin: main.elf
 	$(OBJC) main.elf main.bin -O binary
 main.lst: main.elf
 	$(OBJD) -D main.elf > main.lst
-main.elf: startup.o usb_device.o scsi.o flash.o main.o  # malloc.o tasks.o port.o queue.o list.o timers.o heap_2.o main.o
-	$(CC) -o main.elf -T$(LIB)stm32f107.ld startup.o usb_device.o scsi.o flash.o main.o \
+main.elf: startup.o usb_device.o scsi.o flash.o main.o queues.o # malloc.o tasks.o port.o queue.o list.o timers.o heap_2.o main.o
+	$(CC) -o main.elf -T$(LIB)stm32f107.ld startup.o usb_device.o queues.o \
+	scsi.o flash.o main.o \
 	-I$(LIB) -I$(FRH) $(LCPPFLAGS)
 	arm-none-eabi-size main.elf
 startup.o: $(LIB)startup.cpp
@@ -48,6 +49,8 @@ scsi.o: src/scsi.cpp
 	$(CC) src/scsi.cpp -o scsi.o -I$(INC) -I$(LIB) $(CPPFLAGS)
 flash.o: src/flash.cpp
 	$(CC) src/flash.cpp -o flash.o -I$(INC) -I$(LIB) $(CPPFLAGS)	
+queues.o: src/queues.cpp
+	$(CC) src/queues.cpp -o queues.o -I$(INC) -I$(LIB) $(CPPFLAGS)	
 #malloc.o: src/malloc.cpp
 #	$(CC) src/malloc.cpp -o malloc.o -I$(INC) -I$(FRH) $(CPPFLAGS)	
 #port.o: freeRTOS/src/port.c 

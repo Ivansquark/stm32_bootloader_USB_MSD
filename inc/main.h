@@ -19,6 +19,7 @@
 //#include "button.h"
 #include "flash.hpp"
 #include "scsi.hpp"
+#include "queues.hpp"
 
 
 //***************************************************

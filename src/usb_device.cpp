@@ -320,11 +320,14 @@ void USB_DEVICE::read_BULK_FIFO(uint8_t size)
 	for (uint8_t i=0;i<size_on_for;i++)
 	{
 		buf[i]=USB_OTG_DFIFO(0); //вычитываем из Rx_FIFO				
-	}	
+	}
 	for(uint8_t j=0;j<size;j++)
 	{
 		BULK_OUT_buf[j]=*((uint8_t*)(buf)+j); //записываем в буфер
-		//qBulk_OUT.push(BULK_OUT_buf[j]);
+		if(size==64)
+		{
+			QueT<uint8_t,512>::pThis->push(BULK_OUT_buf[j]);
+		}		
 	}
 }
 
@@ -486,7 +489,7 @@ extern "C" void OTG_FS_IRQHandler(void)
 		    USB_OTG_OUT(0)->DOEPINT = epint; //сбрасываем регистр статуса прерываний записью единицы rc_w1 (read/clear_write_1)
 		}
 		if( epnums & 0x00040000)		// конечная точка 2 BULK_OUT
-		{ //EP1 OEPINT
+		{ //EP2 OEPINT
 			//USART_debug::usart2_sendSTR("BULK_OUT\n");	
 			epint = USB_OTG_OUT(2)->DOEPINT;  //Этот регистр показывает статус конечной точки по отношению к событиям USB и AHB.
 		    epint &= USB_OTG_DEVICE->DOEPMSK; // считываем разрешенные биты 
@@ -539,9 +542,9 @@ extern "C" void OTG_FS_IRQHandler(void)
 						//uint8_t size = 64 - (USB_OTG_OUT(1)->DOEPTSIZ & 0xFF); //						
 						if(bytesSize)
 						{				
-							if(bytesSize!=64)
+							//if(bytesSize!=64)
 							{//вычитываем из FIFO количество байт size в буффер BULK_OUT_buf							
-								USB_DEVICE::pThis->read_BULK_FIFO(bytesSize);
+								USB_DEVICE::pThis->read_BULK_FIFO(bytesSize);																
 							}//если равно 64 => в FIFO данные для записи во флэш (вычитываем в WRITE_10) 
 							 //USART_debug::usart2_send(bytesSize);
 							//USART_debug::usart2_sendSTR("r_B_F\n");
