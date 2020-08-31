@@ -329,10 +329,10 @@ void USB_DEVICE::read_BULK_FIFO(uint8_t size)
 		//	QueT<uint8_t,512>::pThis->push(BULK_OUT_buf[j]);
 		//}		
 	}
-	if(size==64)
-	{
-		USART_debug::usart2_sendSTR("q64 \n");
-	}
+	//if(size==64)
+	//{
+	//	USART_debug::usart2_sendSTR("q64 \n");
+	//}
 }
 
 
