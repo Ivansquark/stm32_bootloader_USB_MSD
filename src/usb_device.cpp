@@ -324,11 +324,14 @@ void USB_DEVICE::read_BULK_FIFO(uint8_t size)
 	for(uint8_t j=0;j<size;j++)
 	{
 		BULK_OUT_buf[j]=*((uint8_t*)(buf)+j); //записываем в буфер если передается непрерывный массив
-		if(size==64)
-		{
-			USART_debug::usart2_sendSTR("q64\n");
-			QueT<uint8_t,512>::pThis->push(BULK_OUT_buf[j]);
-		}		
+		//if(size==64)
+		//{			
+		//	QueT<uint8_t,512>::pThis->push(BULK_OUT_buf[j]);
+		//}		
+	}
+	if(size==64)
+	{
+		USART_debug::usart2_sendSTR("q64 \n");
 	}
 }
 
@@ -445,7 +448,7 @@ extern "C" void OTG_FS_IRQHandler(void)
 			/*!<передаем данные в BULK точку (если данные есть в данном FIFO то они передадутся и сработает это прерывание)>*/
 			if(epint & USB_OTG_DIEPINT_XFRC) // передача пакета окончена
 			{
-				SCSI::transiveFifoFlag=false;
+				SCSI::transiveFifoFlag=false;				
 				//USART_debug::usart2_send(USB_OTG_IN(1)->DTXFSTS); //оставшийся размер TxFIFO
 				//USART_debug::usart2_sendSTR("B_IN_X \n");
 			}
@@ -497,7 +500,8 @@ extern "C" void OTG_FS_IRQHandler(void)
 			/*!<Когда приложение прочитало все данные, ядро генерирует прерывание XFRC>*/ 
 			if(epint & USB_OTG_DOEPINT_XFRC)
 			{
-				/*!<разгребаем принятые данные в буфере приема BULK точки (in main)>*/				
+				/*!<разгребаем принятые данные в буфере приема BULK точки (in main)>*/	
+				//USART_debug::usart2_sendSTR("X_F_R_C\n");			
 				SCSI::recieveCommandFlag=true;	//обрабатываем принятый пакет c командами SCSI
 			}						
 			//----------------------------------------------------------------------
@@ -542,13 +546,18 @@ extern "C" void OTG_FS_IRQHandler(void)
 						  */
 						//uint8_t size = 64 - (USB_OTG_OUT(1)->DOEPTSIZ & 0xFF); //						
 						if(bytesSize)
-						{				
-							//if(bytesSize!=64)
+						{			
+							USART_debug::usart2_send(bytesSize);	
+							if(bytesSize!=64)
 							{//вычитываем из FIFO количество байт size в буффер BULK_OUT_buf							
 								USB_DEVICE::pThis->read_BULK_FIFO(bytesSize);																
 							}//если равно 64 => в FIFO данные для записи во флэш (вычитываем в WRITE_10) 
-							 USART_debug::usart2_send(bytesSize);
-							USART_debug::usart2_sendSTR("r_B_F\n");
+							else
+							{
+								SCSI::bulkFifoFlag=true;
+							}
+							
+							//USART_debug::usart2_sendSTR("r_B_F\n");
 						}
 						//uint32_t dummy = USB_OTG_DFIFO(0);
 					}																

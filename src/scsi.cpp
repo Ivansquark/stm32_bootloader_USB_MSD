@@ -2,6 +2,7 @@
 
 bool SCSI::recieveCommandFlag=false;
 bool SCSI::transiveFifoFlag=false;
+bool SCSI::bulkFifoFlag=false;
 
 SCSI::SCSI(){}
 
@@ -153,27 +154,18 @@ void SCSI::SCSI_Execute(uint8_t ep_number)
 		//выполняем чтение и запись блоков
 		for ( ; i < n; i++)
 		{
-			for(uint32_t i=0;i<100000;i++);//;ждем пока данные заполнят FIFO несколько раз
-			for(uint32_t i=0;i<512;i++)
+			
+			for(uint32_t i=0;i<8;i++)
 			{
-				if(QueT<uint8_t,512>::pThis->is_not_empty())
+				if(SCSI::bulkFifoFlag)
+				{USB_DEVICE::pThis->read_BULK_FIFO(64);}
+				for(uint32_t i=0;i<200000;i++);//;ждем пока данные заполнят FIFO несколько раз
+				for(uint8_t k=0;k<64;k++)
 				{
-					buf[i]=QueT<uint8_t,512>::pThis->pop();
+					buf[64*i+k]=USB_DEVICE::pThis->BULK_OUT_buf[k]; //заполнение массива 8 раз подряд
 				}
-			}
-			////Так как размер конечной точки 64 байта, читаем 512 байт за 8 раз
-			//for (j = 0; j < 8; j++)
-			//{
-			//	//TODO: реализовать чтение fifo по флагу
-			//	//TODO: если FIFO заполнен
-			//	USB_DEVICE::pThis->read_BULK_FIFO(64);
-			//	for(uint8_t k=0;k<64;k++)
-			//	{
-			//		buf[64*j+k]=USB_DEVICE::pThis->BULK_OUT_buf[k]; //заполнение массива 8 раз подряд
-			//	}
-			//	
-			//	//USART_debug::usart2_sendSTR("\n WR_BULK_10 \n");
-			//}
+				USART_debug::usart2_sendSTR("\n WR_64 \n");		
+			}			
 		//Записываем прочитанный блок во FLASH
 			Flash::pThis->write_any_buf(Flash::FLASH_PROGRAMM_ADDRESS+i, buf, 512);
 		}

@@ -14,13 +14,17 @@ QueT<uint8_t,512> que;
 
 bool BootState()
 {	
-	RCC->APB2ENR|=RCC_APB2ENR_IOPAEN;
-	return GPIOA->IDR|=GPIO_IDR_IDR0; //если есть питание на пине
+	RCC->APB2ENR|=RCC_APB2ENR_IOPCEN;
+	GPIOC->CRH&=~GPIO_CRL_CNF3;
+	GPIOC->CRH&=~GPIO_CRL_MODE3;
+	GPIOC->ODR|=GPIO_ODR_ODR3;
+	bool x =GPIOC->IDR & GPIO_IDR_IDR3; 
+	return (!x); //если есть питание на пине
 }	
 
 int main()
 {		    
-	if (BootState)
+	if (!BootState())
 	{//! входим в bootloader
 		RCCini rcc;	//! 72 MHz	
 		RCC->APB2ENR|=RCC_APB2ENR_IOPBEN;
@@ -39,11 +43,15 @@ int main()
 			{
 				//USART_debug::usart2_sendSTR("\n Execute \n");
 				scsi.SCSI_Execute(2); //обработка протокола SCSI лежащего в приемном буффере устройства				
+				//scsi.recieveCommandFlag=false;
 			}	
-			font16.intToChar(USB_DEVICE::pThis->resetFlag);
-			font16.print(10,100,0x00ff,font16.arr,3);
-			font16.intToChar(USB_DEVICE::pThis->counter);
-			font16.print(100,100,0x00ff,font16.arr,3);
+			else
+			{
+				//font16.intToChar(USB_DEVICE::pThis->resetFlag);
+				//font16.print(10,100,0x00ff,font16.arr,3);
+				//font16.intToChar(USB_DEVICE::pThis->counter);
+				//font16.print(100,100,0x00ff,font16.arr,3);				
+			}
 		}
 	}
 	else //! идем в код с адреса 0x08005000

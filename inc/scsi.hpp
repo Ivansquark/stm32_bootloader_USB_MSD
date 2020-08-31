@@ -11,6 +11,7 @@ public:
 	SCSI();
 	static bool recieveCommandFlag;
 	static bool transiveFifoFlag;
+	static bool bulkFifoFlag;
 	uint8_t buf[512];
 	const uint8_t buf1[512]={0};
 	enum SCSI_NAME
