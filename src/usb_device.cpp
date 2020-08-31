@@ -323,9 +323,10 @@ void USB_DEVICE::read_BULK_FIFO(uint8_t size)
 	}
 	for(uint8_t j=0;j<size;j++)
 	{
-		BULK_OUT_buf[j]=*((uint8_t*)(buf)+j); //записываем в буфер
+		BULK_OUT_buf[j]=*((uint8_t*)(buf)+j); //записываем в буфер если передается непрерывный массив
 		if(size==64)
 		{
+			USART_debug::usart2_sendSTR("q64\n");
 			QueT<uint8_t,512>::pThis->push(BULK_OUT_buf[j]);
 		}		
 	}
@@ -546,8 +547,8 @@ extern "C" void OTG_FS_IRQHandler(void)
 							{//вычитываем из FIFO количество байт size в буффер BULK_OUT_buf							
 								USB_DEVICE::pThis->read_BULK_FIFO(bytesSize);																
 							}//если равно 64 => в FIFO данные для записи во флэш (вычитываем в WRITE_10) 
-							 //USART_debug::usart2_send(bytesSize);
-							//USART_debug::usart2_sendSTR("r_B_F\n");
+							 USART_debug::usart2_send(bytesSize);
+							USART_debug::usart2_sendSTR("r_B_F\n");
 						}
 						//uint32_t dummy = USB_OTG_DFIFO(0);
 					}																
@@ -568,14 +569,14 @@ extern "C" void OTG_FS_IRQHandler(void)
 		{
 			switch (status) 
 			{
-				case 0x03: //OUT complete
+				case 0x03: //OUT complete ()
 				/*<После того, как эта запись была извлечена из RxFIFO, ядро выставляет прерывание XFRC на указанной конечной точке OUT>*/
 						//USB_OTG_FS-> GINTMSK |= USB_OTG_GINTMSK_OEPINT;
 						if(epNum==2)
 						{							
 							//USART_debug::usart2_sendSTR("BULK_OUT_COMPL \n");
 							USB_OTG_OUT(2)->DOEPTSIZ = 0;
-							USB_OTG_OUT(2)->DOEPTSIZ |= (1<<19)|(64<<0) ; //PKNT = 1 (DATA), макс размер пакета 64 байта
+							USB_OTG_OUT(2)->DOEPTSIZ |= (8<<19)|(64<<0) ; //PKNT = 8 (DATA), на 512 байт макс размер пакета 64 байта
 							USB_OTG_OUT(2)->DOEPCTL |= (USB_OTG_DOEPCTL_CNAK | USB_OTG_DOEPCTL_EPENA);
 						}						
 				break;

@@ -135,24 +135,25 @@ void SCSI::SCSI_Execute(uint8_t ep_number)
 		CSW.bCSWStatus = 0x00;
 		USB_DEVICE::pThis->counter=USB_OTG_IN(2)->DTXFSTS;
 		while(transiveFifoFlag);		
-		for(uint32_t i=0;i<10000;i++);//pause to recieve ZLP
+		for(uint32_t i=0;i<1000;i++);//pause to recieve ZLP
 		USB_DEVICE::pThis->WriteINEP(ep_number, (uint8_t *)&CSW, 13);
 		USART_debug::usart2_sendSTR("Read_and \n");
 		
 		break;
 //---------------------------------------------------------------------------------		
 		case WRITE_10:
-		USART_debug::usart2_sendSTR("\n WRITE_10 \n");
+		
 		//recieveDataFlag=true; // флаг о том что принимаем данные а не команду.
 		//записываем в I начальный адрес записываемого блока
 		i = ((cbw -> CBWCB[2] << 24) | (cbw -> CBWCB[3] << 16) | (cbw -> CBWCB[4] << 8) | (cbw -> CBWCB[5]));
 		//записываем в n адрес последнего записываемого блока
 		n = i + ((cbw -> CBWCB[7] << 8) | cbw -> CBWCB[8]);
 		//for(uint32_t i=0;i<10000;i++);//;ждем пока данные снова заполнят FIFO
+		USART_debug::usart2_sendSTR("\n WRITE_10 \n");
 		//выполняем чтение и запись блоков
 		for ( ; i < n; i++)
 		{
-			for(uint32_t i=0;i<100000;i++);//;ждем пока данные снова заполнят FIFO
+			for(uint32_t i=0;i<100000;i++);//;ждем пока данные заполнят FIFO несколько раз
 			for(uint32_t i=0;i<512;i++)
 			{
 				if(QueT<uint8_t,512>::pThis->is_not_empty())
@@ -218,6 +219,5 @@ void SCSI::SCSI_Execute(uint8_t ep_number)
     	    USB_DEVICE::pThis->WriteINEP(ep_number, (uint8_t *)&CSW, 13);
     	    break;
     	}   
-	}   
-    
+	}       
 }
