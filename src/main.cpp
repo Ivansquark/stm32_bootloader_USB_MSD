@@ -10,7 +10,7 @@ static constexpr uint32_t last_page= 0x0803F800; // - address of last flash 2k p
 
 SCSI scsi; //выделение памяти под объект с буффером 2K на одну страницу флэша в оперативной памяти (2048)
 Flash flash;
-//QueT<uint8_t,512> que;//TODO: удалить
+QueT<uint8_t,2048> que;//TODO: удалить
 
 bool BootState()
 {	

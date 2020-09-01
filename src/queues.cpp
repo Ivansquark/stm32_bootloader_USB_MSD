@@ -1,6 +1,6 @@
 #include "queues.hpp"
 
-template class QueT<uint8_t,512>;
+template class QueT<uint8_t,2048>;
 
 template <typename T,uint32_t size>
 QueT<T,size>::QueT()

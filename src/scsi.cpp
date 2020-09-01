@@ -115,9 +115,9 @@ void SCSI::SCSI_Execute(uint8_t ep_number)
 		for ( ; i < n; i++)
 		{
 			//Читаем блок из FLASH, помещаем в массив uint8_t buf2K[2048]
-			Flash::pThis->read_buf(Flash::FLASH_PROGRAMM_ADDRESS+i*512, buf2K, 512);
+			Flash::pThis->read_buf(Flash::FLASH_PROGRAMM_ADDRESS+i*2048, buf2K, 2048);
 			//Так как размер конечной точки 64 байта, передаем 512 байт за 8 раз			
-			for (j = 0; j < 8; j++)
+			for (j = 0; j < 32; j++)
 			{			
 				uint32_t count=0;	
 				//Передаем часть буфера
@@ -139,7 +139,7 @@ void SCSI::SCSI_Execute(uint8_t ep_number)
 		while(transiveFifoFlag);		
 		for(uint32_t i=0;i<1000;i++);//pause to recieve ZLP
 		USB_DEVICE::pThis->WriteINEP(ep_number, (uint8_t *)&CSW, 13);
-		USART_debug::usart2_sendSTR("Read_and \n");
+		USART_debug::usart2_sendSTR("Read_end \n");
 		
 		break;
 //---------------------------------------------------------------------------------		
@@ -153,23 +153,24 @@ void SCSI::SCSI_Execute(uint8_t ep_number)
 		//for(uint32_t i=0;i<10000;i++);//;ждем пока данные снова заполнят FIFO
 		USART_debug::usart2_sendSTR("\n WRITE_10 \n");
 		//выполняем чтение и запись блоков
-		uint8_t remainder=n%4;
-		for(uint8_t j=0; j<n/4; j++) //делим по 2048 байт
-		{
-			for(uint8_t j=0; j<remainder; j++) //заполняем 2048 байт (максимум 4 раза по 512)
+		//for(uint32_t z=0;z<20000;z++);//;ждем пока данные заполнят FIFO несколько раз
+				
+		for(uint8_t j=0; j<n; j++) //делим по 2048 байт
+		{			
+			for(uint32_t i=0;i<32;i++)
 			{
-				for(uint32_t i=0;i<8;i++)
+				if(SCSI::bulkFifoFlag)
 				{
-					if(SCSI::bulkFifoFlag)
-					{USB_DEVICE::pThis->read_BULK_FIFO(64);}
-					for(uint32_t i=0;i<200000;i++);//;ждем пока данные заполнят FIFO несколько раз
-					for(uint8_t k=0;k<64;k++)
-					{
-						buf2K[512*j+64*i+k]=USB_DEVICE::pThis->BULK_OUT_buf[k]; //заполнение массива 8 раз подряд
-					}
-					USART_debug::usart2_sendSTR("\n WR_64 \n");		
-				}				
-			}
+					//USB_DEVICE::pThis->read_BULK_FIFO(64);
+					//SCSI::bulkFifoFlag=false;
+				}
+				//for(uint32_t z=0;z<20000;z++);//;ждем пока данные заполнят FIFO несколько раз
+				for(uint8_t k=0;k<64;k++)
+				{
+					buf2K[64*i+k]=QueT<uint8_t,2048>::pThis->pop();//USB_DEVICE::pThis->BULK_OUT_buf[k]; //заполнение массива 8 раз подряд
+				}
+				//USART_debug::usart2_sendSTR("\n WR_64 \n");		
+			}						
 			Flash::pThis->write_any_buf(Flash::FLASH_PROGRAMM_ADDRESS+j*2048, buf2K, 2048); //записываем во флэш 2048 байт
 		}
 		
