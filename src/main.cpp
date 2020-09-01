@@ -8,9 +8,9 @@ void *__dso_handle = nullptr; // dummy "guard" that is used to identify dynamic 
 
 static constexpr uint32_t last_page= 0x0803F800; // - address of last flash 2k page (2k=0x800, 1k=0x400)
 
-SCSI scsi;
+SCSI scsi; //выделение памяти под объект с буффером 2K на одну страницу флэша в оперативной памяти (2048)
 Flash flash;
-QueT<uint8_t,512> que;
+//QueT<uint8_t,512> que;//TODO: удалить
 
 bool BootState()
 {	

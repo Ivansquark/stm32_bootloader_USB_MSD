@@ -9,8 +9,8 @@
 
 #define RX_FIFO_SIZE         128 //размер очередей в 32 битных словах увеличим для получения пакета целиком (Ep на 64 + служебная инфа)
 #define TX_EP0_FIFO_SIZE     64
-#define TX_EP1_FIFO_SIZE     128//256
-#define TX_EP2_FIFO_SIZE     256//128
+#define TX_EP1_FIFO_SIZE     128//
+#define TX_EP2_FIFO_SIZE     256//256 32-х битных слов(1024 байт)
 #define TX_EP3_FIFO_SIZE     0//128
 //адреса разных FIFO
 #define USB_OTG_DFIFO(i) *(__IO uint32_t *)((uint32_t)USB_OTG_FS_PERIPH_BASE + USB_OTG_FIFO_BASE + (i) * USB_OTG_FIFO_SIZE) 

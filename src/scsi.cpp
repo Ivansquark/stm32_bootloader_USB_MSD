@@ -114,8 +114,8 @@ void SCSI::SCSI_Execute(uint8_t ep_number)
 		
 		for ( ; i < n; i++)
 		{
-			//Читаем блок из FLASH, помещаем в массив uint8_t buf[512]
-			Flash::pThis->read_buf(Flash::FLASH_PROGRAMM_ADDRESS+i*512, buf, 512);
+			//Читаем блок из FLASH, помещаем в массив uint8_t buf2K[2048]
+			Flash::pThis->read_buf(Flash::FLASH_PROGRAMM_ADDRESS+i*512, buf2K, 512);
 			//Так как размер конечной точки 64 байта, передаем 512 байт за 8 раз			
 			for (j = 0; j < 8; j++)
 			{			
@@ -123,14 +123,14 @@ void SCSI::SCSI_Execute(uint8_t ep_number)
 				//Передаем часть буфера
 				count++;
 				while(transiveFifoFlag);
-				USB_DEVICE::pThis->WriteINEP(ep_number, (buf+j*64), 64);
+				USB_DEVICE::pThis->WriteINEP(ep_number, (buf2K+j*64), 64);
 				//USART_debug::usart2_sendSTR("\n R_F \n");
 				USB_DEVICE::pThis->counter = count;
 				//while(transiveFifoFlag);
 			}			
 			//USB_DEVICE::pThis->TxFifoFlush();
 		}
-		//USB_DEVICE::pThis->WriteINEP(ep_number, (buf), 0);//ZLP
+		//USB_DEVICE::pThis->WriteINEP(ep_number, (buf), 0);//ZLP  (не нужно)
 		
 		//Заполняем и посылаем CSW
 		CSW.dCSWDataResidue = (cbw -> dCBWDataTransferLength) - cbw -> CBWCB[4];
@@ -153,23 +153,26 @@ void SCSI::SCSI_Execute(uint8_t ep_number)
 		//for(uint32_t i=0;i<10000;i++);//;ждем пока данные снова заполнят FIFO
 		USART_debug::usart2_sendSTR("\n WRITE_10 \n");
 		//выполняем чтение и запись блоков
-		for ( ; i < n; i++)
-		{			
-			for(uint32_t i=0;i<8;i++)
+		uint8_t remainder=n%4;
+		for(uint8_t j=0; j<n/4; j++) //делим по 2048 байт
+		{
+			for(uint8_t j=0; j<remainder; j++) //заполняем 2048 байт (максимум 4 раза по 512)
 			{
-				if(SCSI::bulkFifoFlag)
-				{USB_DEVICE::pThis->read_BULK_FIFO(64);}
-				for(uint32_t i=0;i<200000;i++);//;ждем пока данные заполнят FIFO несколько раз
-				for(uint8_t k=0;k<64;k++)
+				for(uint32_t i=0;i<8;i++)
 				{
-					buf[64*i+k]=USB_DEVICE::pThis->BULK_OUT_buf[k]; //заполнение массива 8 раз подряд
-				}
-				USART_debug::usart2_sendSTR("\n WR_64 \n");		
-			}			
-		//Записываем прочитанный блок во FLASH
-		//TODO: реализовать запись на страницу 2К (сейчас по 512 байт)
-			Flash::pThis->write_any_buf(Flash::FLASH_PROGRAMM_ADDRESS+i*512, buf, 512);
+					if(SCSI::bulkFifoFlag)
+					{USB_DEVICE::pThis->read_BULK_FIFO(64);}
+					for(uint32_t i=0;i<200000;i++);//;ждем пока данные заполнят FIFO несколько раз
+					for(uint8_t k=0;k<64;k++)
+					{
+						buf2K[512*j+64*i+k]=USB_DEVICE::pThis->BULK_OUT_buf[k]; //заполнение массива 8 раз подряд
+					}
+					USART_debug::usart2_sendSTR("\n WR_64 \n");		
+				}				
+			}
+			Flash::pThis->write_any_buf(Flash::FLASH_PROGRAMM_ADDRESS+j*2048, buf2K, 2048); //записываем во флэш 2048 байт
 		}
+		
 		//Заполняем и посылаем CSW
 		CSW.dCSWDataResidue = (cbw -> dCBWDataTransferLength ) - cbw -> CBWCB[4];
 		CSW.bCSWStatus = 0x00;
