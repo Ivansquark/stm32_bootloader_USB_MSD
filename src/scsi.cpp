@@ -153,7 +153,7 @@ void SCSI::SCSI_Execute(uint8_t ep_number)
 		//for(uint32_t i=0;i<10000;i++);//;ждем пока данные снова заполнят FIFO
 		USART_debug::usart2_sendSTR("\n WRITE_10 \n");
 		//выполняем чтение и запись блоков
-		//for(uint32_t z=0;z<20000;z++);//;ждем пока данные заполнят FIFO несколько раз
+		for(uint32_t z=0;z<20000;z++);//;ждем пока данные заполнят FIFO несколько раз
 				
 		for(uint8_t j=0; j<n; j++) //делим по 2048 байт
 		{			

@@ -1,7 +1,7 @@
 /*!	\file starup and initialization file*/
 extern "C" void Reset_Handler();//declarations to see it from everywhere
 extern "C" void NMI_Handler() __attribute__((weak,alias("Default_Handler"))); 
-extern "C" void HardFault_Handler() __attribute__((weak,alias("Default_Handler")));
+extern "C" void HardFault_Handler();
 extern "C" void MemManage_Handler() __attribute__((weak,alias("Default_Handler")));
 extern "C" void BusFault_Handler() __attribute__((weak,alias("Default_Handler")));
 extern "C" void UsageFault_Handler() __attribute__((weak,alias("Default_Handler")));
@@ -218,4 +218,6 @@ void __attribute__((naked,noreturn)) Reset_Handler()
     main();    
 }
 void __attribute__(()) Default_Handler() // naked its with no input and output parameters
+{while(1);}
+void __attribute__(()) HardFault_Handler() 
 {while(1);}

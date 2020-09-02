@@ -72,8 +72,7 @@ void Flash::goToUserApp(void)
 	void (*goToApp)(void); //function pointer
 	goToApp = (void (*)(void))appJumpToAddress; // cast address to function pointer
 	/*!<before sets new vectors table address need to tell linker new main programm address>*/
-	SCB->VTOR = FLASH_PROGRAMM_ADDRESS; //sets vectors table to new address
+	//SCB->VTOR = FLASH_PROGRAMM_ADDRESS; //sets vectors table to new address
 	__set_MSP(*((volatile uint32_t*) FLASH_PROGRAMM_ADDRESS)); //stack pointer (to RAM) for USER app in this address	
-	//NVIC_SetVectorTable(NVIC_VectTab_FLASH, FLASH_PROGRAMM_ADDRESS);
 	goToApp(); //go to start main programm	
 }
